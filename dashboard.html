@@ -3,551 +3,501 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASYNC RESEARCH FACILITY • CLASSIFIED • THRESHOLD ACCESS</title>
+    <title>ASYNC RESEARCH FACILITY • CLASSIFIED • THRESHOLD ACTIVE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&amp;display=swap" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&amp;display=swap');
 
         :root {
-            --crt-scan: rgba(0, 255, 100, 0.15);
+            --crt-scan: rgba(0, 255, 80, 0.18);
         }
 
-        * {
-            image-rendering: pixelated;
-        }
+        * { image-rendering: pixelated; }
 
         body {
             font-family: 'VT323', monospace;
-            background: #111;
+            background: #0a0a0a;
+            color: #ff0;
             overflow: hidden;
         }
 
-        /* GLOBAL CRT EFFECT */
+        /* ULTRA CRT + VHS EFFECTS */
         .crt {
             position: relative;
+            filter: contrast(1.15) brightness(1.08);
         }
         .crt::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: repeating-linear-gradient(
-                to bottom,
-                transparent 0px,
-                transparent 2px,
-                var(--crt-scan) 2px,
-                var(--crt-scan) 4px
-            );
+            inset: 0;
+            background: repeating-linear-gradient(transparent 0px, transparent 3px, var(--crt-scan) 3px, var(--crt-scan) 6px);
             pointer-events: none;
-            animation: scanline 4s linear infinite;
-            z-index: 10;
-            opacity: 0.6;
+            animation: scanline 6s linear infinite;
+            z-index: 30;
+            opacity: 0.75;
             mix-blend-mode: overlay;
         }
         .crt::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 65%, rgba(0,0,0,0.85) 100%);
             pointer-events: none;
-            z-index: 20;
-            animation: flicker 0.15s infinite alternate;
+            z-index: 40;
+            animation: flicker 0.12s infinite alternate;
         }
-        @keyframes scanline {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 100vh; }
-        }
-        @keyframes flicker {
-            0% { opacity: 0.95; }
-            100% { opacity: 1; }
-        }
+        @keyframes scanline { 0% { background-position: 0 0; } 100% { background-position: 0 200vh; } }
+        @keyframes flicker { 0% { opacity: 0.96; } 100% { opacity: 1; } }
 
-        /* THRESHOLD BOOT ANIMATION */
+        /* EPIC THRESHOLD BOOT */
         #boot-screen {
-            animation: bootFade 0.5s ease forwards;
+            animation: bootSequence 16s linear forwards;
         }
-        @keyframes bootFade {
-            0% { opacity: 1; }
+        @keyframes bootSequence {
+            0%   { opacity: 1; }
+            95%  { opacity: 1; }
             100% { opacity: 0; }
         }
 
-        .threshold-portal {
-            animation: portalPulse 2s ease-in-out infinite;
+        .magnetic-ring {
+            animation: ringPulse 3.5s ease-in-out infinite;
+        }
+        @keyframes ringPulse {
+            0%, 100% { transform: scale(0.6); opacity: 0.3; }
+            50% { transform: scale(1.15); opacity: 0.9; }
         }
 
-        /* ADMIN PANEL GLASSMORPHISM */
-        .admin-panel {
-            backdrop-filter: blur(16px);
+        /* FOUND FOOTAGE TV - DARK ROOM */
+        #tv-modal {
+            background: radial-gradient(circle at center, #111 20%, #000 80%);
+        }
+        #crt-tv {
+            box-shadow: 0 0 120px #0f0,
+                        inset 0 0 80px rgba(255,255,100,0.25),
+                        0 25px 50px -12px rgb(0 0 0 / 0.8);
         }
 
-        /* VHS INSERT ANIMATION */
+        /* ADMIN PANEL */
+        .admin-glass {
+            background: rgba(10, 20, 30, 0.92);
+            backdrop-filter: blur(20px);
+        }
+
+        .classified-text {
+            text-shadow: 0 0 8px #ff0, 0 0 20px #f00, 0 0 40px #f00;
+        }
+
         .vhs-tape {
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
         }
         .vhs-tape.inserted {
-            transform: translateY(120px) rotate(90deg) scale(0.6);
-        }
-
-        /* HIGH-QUALITY TEXT EFFECTS */
-        .classified-text {
-            text-shadow: 
-                0 0 10px #ff0,
-                0 0 20px #ff0,
-                0 0 40px #f00;
+            transform: translateY(140px) rotate(85deg) scale(0.55) !important;
+            filter: brightness(0.6);
         }
     </style>
 </head>
-<body class="text-[#ff0] bg-black crt">
+<body class="crt text-[#ff0]">
 
-    <!-- === THRESHOLD STARTUP / BOOT ANIMATION === -->
-    <div id="boot-screen" class="fixed inset-0 bg-black flex flex-col items-center justify-center z-[9999] text-center">
-        <div class="w-96 h-96 border-8 border-[#0f0] rounded-full flex items-center justify-center relative threshold-portal">
-            <!-- Magnetic field lines -->
-            <div class="absolute w-full h-full border-4 border-[#0ff] rounded-full animate-[spin_8s_linear_infinite]"></div>
-            <div class="absolute w-3/4 h-3/4 border-4 border-[#0ff] rounded-full animate-[spin_6s_linear_infinite_reverse]"></div>
-            <div class="absolute w-1/2 h-1/2 border-4 border-[#0ff] rounded-full animate-[spin_4s_linear_infinite]"></div>
+    <!-- === LONG CINEMATIC THRESHOLD BOOT ANIMATION === -->
+    <div id="boot-screen" class="fixed inset-0 bg-black z-[99999] flex flex-col items-center justify-center text-center overflow-hidden">
+        <div class="relative w-[520px] h-[520px]">
+            <!-- Magnetic rings -->
+            <div class="absolute inset-0 border-[14px] border-[#0ff] rounded-full magnetic-ring"></div>
+            <div class="absolute inset-[60px] border-[10px] border-[#0ff] rounded-full magnetic-ring" style="animation-delay: 0.6s"></div>
+            <div class="absolute inset-[120px] border-[8px] border-[#0ff] rounded-full magnetic-ring" style="animation-delay: 1.2s"></div>
             
-            <!-- ASYNC Logo -->
-            <div class="text-8xl font-bold tracking-[0.5em] text-[#0ff] drop-shadow-[0_0_30px_#0ff] mb-12">ASYNC</div>
-            
-            <!-- Threshold Core -->
-            <div class="absolute text-6xl font-bold text-[#ff0] animate-pulse">THRESHOLD</div>
-            <div class="absolute text-4xl text-[#f00] mt-24 tracking-widest">LOW-PROXIMITY MAGNETIC DISTORTION SYSTEM</div>
+            <div class="absolute inset-0 flex items-center justify-center flex-col">
+                <div class="text-[92px] font-bold tracking-[12px] text-[#0ff] drop-shadow-[0_0_40px_#0ff]">ASYNC</div>
+                <div class="text-5xl text-[#ff0] mt-[-12px] tracking-widest">LOW-PROXIMITY MAGNETIC DISTORTION SYSTEM</div>
+                <div id="boot-phase" class="mt-16 text-4xl text-[#0f0] min-h-[60px]">INITIALIZING THRESHOLD...</div>
+            </div>
         </div>
 
-        <div id="boot-progress" class="mt-12 w-96 h-8 border-4 border-[#0f0] relative">
-            <div id="progress-bar" class="absolute h-full bg-gradient-to-r from-[#0f0] to-[#ff0] w-0 transition-all duration-300"></div>
+        <!-- Progress -->
+        <div class="mt-20 w-[520px]">
+            <div class="h-5 bg-[#111] border-2 border-[#0f0] relative">
+                <div id="boot-progress" class="h-full bg-gradient-to-r from-[#0f0] via-[#ff0] to-[#f00] w-0 transition-all duration-[18000ms]"></div>
+            </div>
         </div>
-        <p id="boot-status" class="mt-4 text-3xl text-[#0f0] tracking-[4px]">INITIALIZING THRESHOLD • CLASSIFIED LEVEL 5</p>
-        <p class="mt-8 text-xl text-[#666] animate-pulse">1989 • ASYNC RESEARCH FACILITY • SAN JOSE, CA</p>
-        
-        <!-- Static noise overlay -->
-        <div class="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[length:4px_4px] opacity-10 pointer-events-none animate-[pulse_0.5s_infinite]"></div>
+
+        <div id="boot-log" class="mt-8 text-[#0f0] text-2xl font-light tracking-widest max-w-md text-left">
+            1989.07.02 • ASYNC RESEARCH FACILITY • SAN JOSE, CA
+        </div>
+
+        <!-- Subtle static overlay -->
+        <div class="absolute inset-0 bg-[radial-gradient(#fff_0.8px,transparent_1px)] bg-[length:5px_5px] opacity-10 pointer-events-none"></div>
     </div>
 
-    <!-- === MAIN ASYNC CLASSIFIED UI === -->
+    <!-- === MAIN CLASSIFIED UI === -->
     <div id="main-ui" class="hidden min-h-screen flex flex-col crt">
 
-        <!-- Top classified bar -->
-        <div class="bg-[#111] border-b-4 border-[#f00] py-2 px-6 flex items-center justify-between text-xl">
-            <div class="flex items-center gap-6">
-                <div onclick="triggerAdminShortcut()" class="cursor-pointer flex items-center gap-2">
-                    <span class="text-[#0ff] text-4xl drop-shadow-[0_0_10px_#0ff]">◼</span>
-                    <span class="font-bold tracking-widest">ASYNC</span>
-                    <span class="text-[#f00] text-sm mt-1">RESEARCH FACILITY</span>
-                </div>
-                <div class="text-[#0f0] text-2xl">• CLASSIFIED •</div>
-                <div class="px-4 py-1 bg-[#200] border border-[#f00] text-[#f00] text-sm">CLEARANCE LEVEL 4 • THRESHOLD ACTIVE</div>
+        <!-- TOP BAR -->
+        <div class="bg-[#0c0c0c] border-b-4 border-[#f00] py-3 px-8 flex items-center justify-between text-2xl">
+            <div onclick="triggerAdmin()" class="flex items-center gap-4 cursor-pointer hover:scale-105 transition">
+                <span class="text-[#0ff] text-5xl">◼︎</span>
+                <span class="font-bold tracking-[4px]">ASYNC</span>
+                <span class="text-[#f00]">RESEARCH FACILITY</span>
             </div>
-            
-            <div class="flex gap-8 text-2xl">
-                <a onclick="navigateToSection('home')" class="hover:text-[#0ff] cursor-pointer">HOME</a>
-                <a onclick="navigateToSection('levels')" class="hover:text-[#0ff] cursor-pointer">LEVELS</a>
-                <a onclick="navigateToSection('archives')" class="hover:text-[#0ff] cursor-pointer">ARCHIVES</a>
-                <a onclick="openFoundFootage()" class="hover:text-[#0ff] cursor-pointer flex items-center gap-1">
-                    FOUND FOOTAGE
-                    <span class="text-xs bg-[#f00] text-black px-2 rounded">NEW</span>
+
+            <div class="flex gap-10">
+                <a onclick="switchTab(0)" class="tab-link cursor-pointer hover:text-[#0ff]">HOME</a>
+                <a onclick="switchTab(1)" class="tab-link cursor-pointer hover:text-[#0ff]">LEVELS</a>
+                <a onclick="switchTab(2)" class="tab-link cursor-pointer hover:text-[#0ff]">ARCHIVES</a>
+                <a onclick="openFoundFootage()" class="tab-link cursor-pointer hover:text-[#0ff] flex items-center gap-2">
+                    FOUND FOOTAGE <span class="text-xs bg-red-600 px-2 py-0.5 rounded">KANE PIXELS</span>
                 </a>
             </div>
 
-            <div class="flex items-center gap-3 text-sm">
-                <div class="w-3 h-3 bg-[#0f0] rounded-full animate-pulse"></div>
-                LIVE FEED • THRESHOLD STABLE
-                <button onclick="logoutSimulation()" class="px-6 py-1 border border-[#f00] text-[#f00] hover:bg-[#f00] hover:text-black transition-colors">LOGOUT</button>
-            </div>
-        </div>
-
-        <!-- HERO BANNER -->
-        <div class="relative h-80 bg-[radial-gradient(at_center,#222_30%,#000)] flex items-center px-12 overflow-hidden">
-            <div class="absolute inset-0 bg-[url('https://picsum.photos/id/1015/1920/1080')] opacity-30 bg-cover mix-blend-multiply"></div>
-            <div class="relative z-10 max-w-3xl">
-                <h1 class="text-8xl leading-none classified-text">THE BACKROOMS</h1>
-                <p class="text-4xl text-[#0ff] mt-2">LEVEL 0 • NO-CLIP ENTRY CONFIRMED</p>
-                <p class="text-2xl mt-6 max-w-lg">You are now inside the Low-Proximity Magnetic Distortion System. All personnel must maintain visual contact with yellow walls.</p>
-                <div class="mt-8 inline-flex items-center gap-4 bg-black/70 px-8 py-3 border-2 border-[#ff0]">
-                    <span class="text-[#0f0]">THRESHOLD STATUS:</span>
-                    <span class="text-[#ff0] animate-pulse">OPEN • 1989.07.02</span>
-                </div>
-            </div>
-            
-            <!-- Floating entity warning -->
-            <div class="absolute right-12 top-12 bg-[#300] border-2 border-[#f00] p-6 max-w-xs rotate-[-6deg] shadow-2xl">
-                <p class="text-[#f00] text-3xl">ENTITY SIGHTED</p>
-                <p class="text-xl mt-2">Do not run. Do not make noise. The lights will guide you.</p>
-            </div>
-        </div>
-
-        <!-- CONTENT AREA (Home by default) -->
-        <div id="content-home" class="flex-1 p-8 grid grid-cols-12 gap-8">
-            
-            <!-- Left panel: Facility Map -->
-            <div class="col-span-8 bg-[#111] border-4 border-[#0f0] p-8">
-                <h2 class="text-5xl mb-6">LEVEL 0 — MONOTONE EXPANSE</h2>
-                <div class="grid grid-cols-2 gap-8">
+            <div class="flex items-center gap-6">
+                <!-- RADIO TOGGLE -->
+                <div onclick="toggleRadio()" id="radio-btn" class="flex items-center gap-3 cursor-pointer group">
+                    <div class="w-9 h-9 border-2 border-[#0f0] flex items-center justify-center text-xl group-hover:border-[#ff0]">📻</div>
                     <div>
-                        <img src="https://picsum.photos/id/1015/800/500" alt="Level 0" class="w-full border-4 border-[#ff0] shadow-2xl">
-                        <p class="mt-4 text-2xl">Infinite moist carpet. Fluorescent hum. No exit.</p>
-                    </div>
-                    <div class="space-y-8 text-3xl">
-                        <div class="flex justify-between"><span>MOISTURE LEVEL</span><span class="text-[#0f0]">87%</span></div>
-                        <div class="flex justify-between"><span>ENTITY DENSITY</span><span class="text-[#f00]">MEDIUM</span></div>
-                        <div class="flex justify-between"><span>THRESHOLD STABILITY</span><span class="text-[#ff0]">99.8%</span></div>
-                        <div class="text-[#0ff] text-2xl">WARNING: Noclipping beyond this point may result in permanent displacement.</div>
+                        <div class="text-sm text-[#0f0]">ASYNC COMM</div>
+                        <div id="radio-status" class="text-xs text-[#666]">OFFLINE</div>
                     </div>
                 </div>
+
+                <div class="flex items-center gap-2 text-sm">
+                    <div class="w-3 h-3 bg-[#0f0] rounded-full animate-pulse"></div>
+                    <span>LIVE • THRESHOLD STABLE</span>
+                </div>
+
+                <button onclick="rebootThreshold()" class="px-5 py-1 border border-[#f00] hover:bg-[#300] transition">REBOOT</button>
+            </div>
+        </div>
+
+        <!-- HERO / HOME -->
+        <div id="tab-0" class="flex-1 relative">
+            <div class="h-96 bg-[radial-gradient(#222_40%,#000)] flex items-center px-12 overflow-hidden">
+                <div class="max-w-3xl relative z-10">
+                    <h1 class="text-8xl leading-none classified-text">THE BACKROOMS</h1>
+                    <p class="text-5xl text-[#0ff] mt-3">LEVEL 0 • THRESHOLD BREACH CONFIRMED</p>
+                    <p class="mt-8 text-3xl max-w-lg">Infinite yellow rooms. Fluorescent hum. Moist carpet. No exit. No escape.</p>
+                </div>
             </div>
 
-            <!-- Right sidebar: Live stats -->
-            <div class="col-span-4 space-y-6">
-                <div class="bg-[#111] border-4 border-[#f00] p-6">
-                    <div class="text-[#0f0] text-4xl">CURRENT PERSONNEL</div>
-                    <div class="text-7xl font-bold text-[#ff0]">04</div>
-                    <div class="text-xl">Dr. Beck • Tech. Kane • Field Agent 3 • Observer</div>
-                </div>
-                
-                <div onclick="triggerAdminShortcut()" class="cursor-pointer bg-[#111] border-4 border-[#0ff] p-6 hover:scale-105 transition-transform">
-                    <div class="text-[#0ff] text-4xl">ADMIN ACCESS</div>
-                    <div class="text-3xl mt-2">Press CTRL + ALT + A for classified override</div>
+            <!-- COUNTDOWN TO NEXT "RELEASE" (fun easter egg) -->
+            <div class="absolute top-12 right-12 bg-black/80 border-4 border-[#f00] p-6 text-center">
+                <div class="text-[#f00] text-xl">NEXT ENTITY SIGHTING WINDOW</div>
+                <div id="countdown" class="text-6xl font-bold text-[#ff0] tabular-nums">07:42</div>
+                <div class="text-sm text-[#666]">until potential no-clip event</div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-8 p-8">
+                <!-- Left main content -->
+                <div class="col-span-8 bg-[#111] border-4 border-[#0f0] p-8">
+                    <h2 class="text-6xl">LEVEL 0 — THE LOBBY</h2>
+                    <div class="mt-6 grid grid-cols-2 gap-8">
+                        <img src="https://picsum.photos/id/1015/900/520" alt="Level 0" class="border-4 border-[#ff0]">
+                        <div class="space-y-6 text-3xl">
+                            <div class="flex justify-between"><span>MOISTURE</span><span class="text-[#0f0]">92%</span></div>
+                            <div class="flex justify-between"><span>ENTITY RISK</span><span class="text-[#f00]">LOW (HALLUCINATIONS POSSIBLE)</span></div>
+                            <div class="flex justify-between"><span>THRESHOLD STABILITY</span><span class="text-[#ff0]">98.4%</span></div>
+                            <div class="pt-6 text-[#0ff]">Do not trust the walls. They are not walls.</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-black border border-[#0f0] p-4 text-sm h-64 overflow-auto">
-                    <pre class="text-[#0f0]">LOG 1989-07-02
-&gt; Threshold test #3 successful
-&gt; Entity "Smiler" sighted in Level 0
-&gt; 3 researchers missing</pre>
+                <!-- Sidebar -->
+                <div class="col-span-4 space-y-6">
+                    <div class="bg-[#111] border-4 border-[#f00] p-6">
+                        <div class="text-[#0f0]">PERSONNEL ONLINE</div>
+                        <div id="personnel-count" class="text-7xl font-bold text-[#ff0]">07</div>
+                        <div class="text-xl">Beck • Kane • Field Team Delta</div>
+                    </div>
+
+                    <div class="bg-black border border-[#0f0] p-5 h-80 overflow-hidden">
+                        <div id="live-log" class="text-[#0f0] text-lg leading-tight font-light h-full overflow-hidden"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- LEVELS TAB CONTENT (hidden by default) -->
-        <div id="content-levels" class="hidden flex-1 p-8">
-            <h2 class="text-6xl mb-8">EXPLORED LEVELS • ASYNC ARCHIVE</h2>
-            <div class="grid grid-cols-4 gap-6 text-2xl">
-                <div class="bg-[#111] border-2 border-[#ff0] p-6 hover:bg-[#220] cursor-pointer">LEVEL 0 — The Yellow Rooms</div>
-                <div class="bg-[#111] border-2 border-[#0f0] p-6 hover:bg-[#220] cursor-pointer">LEVEL 1 — The Concrete Jungle</div>
-                <div class="bg-[#111] border-2 border-[#f00] p-6 hover:bg-[#220] cursor-pointer">LEVEL 2 — Pipe Dreams</div>
-                <div class="bg-[#111] border-2 border-[#0ff] p-6 hover:bg-[#220] cursor-pointer">LEVEL ! — Run For Your Life</div>
-                <!-- Add more as needed -->
+        <!-- LEVELS TAB -->
+        <div id="tab-1" class="hidden flex-1 p-8">
+            <h2 class="text-7xl mb-10">EXPLORED LEVELS • ASYNC ARCHIVE</h2>
+            <div class="grid grid-cols-4 gap-6">
+                <div class="bg-[#111] border-4 border-[#ff0] p-8 hover:border-[#0ff] cursor-pointer">LEVEL 0 — Yellow Hell</div>
+                <div class="bg-[#111] border-4 border-[#0f0] p-8 hover:border-[#0ff] cursor-pointer">LEVEL 1 — Concrete Jungle</div>
+                <div class="bg-[#111] border-4 border-[#f00] p-8 hover:border-[#0ff] cursor-pointer">LEVEL 2 — Pipe Nightmare</div>
+                <div class="bg-[#111] border-4 border-[#0ff] p-8 hover:border-[#0ff] cursor-pointer">LEVEL ! — RUN</div>
             </div>
         </div>
 
-        <!-- ARCHIVES TAB (placeholder) -->
-        <div id="content-archives" class="hidden flex-1 p-8 text-3xl">
-            <h2 class="text-6xl mb-8">SECURE ARCHIVES • REDACTED</h2>
-            <p class="max-w-2xl">Access to all internal ASYNC documents, LPMDS schematics, and entity autopsy reports. <span class="text-[#f00]">CLEARANCE REQUIRED</span></p>
-            <div class="mt-12 grid grid-cols-3 gap-8">
-                <div class="border border-[#f00] p-8">MAR11_90_ARCHIVE.tar • 3.1 GB</div>
-                <div class="border border-[#0ff] p-8">PRESENTATION_1989.mp4 • CONFIDENTIAL</div>
-                <div class="border border-[#ff0] p-8">ENTITY AUTOPSY REPORT #004</div>
+        <!-- ARCHIVES TAB -->
+        <div id="tab-2" class="hidden flex-1 p-8">
+            <h2 class="text-7xl mb-10">SECURE ARCHIVES • LEVEL 5 CLEARANCE</h2>
+            <div class="grid grid-cols-3 gap-8 text-3xl">
+                <div class="border-2 border-[#f00] p-10 hover:bg-[#200]">MAR11_90_ARCHIVE.tar</div>
+                <div class="border-2 border-[#0ff] p-10 hover:bg-[#200]">ENTITY AUTOPSY REPORTS</div>
+                <div class="border-2 border-[#ff0] p-10 hover:bg-[#200]">LPMDS SCHEMATICS v3.2</div>
             </div>
         </div>
 
-        <!-- FOOTER BAR -->
-        <div class="bg-[#111] border-t-4 border-[#0f0] py-3 px-8 text-xl flex justify-between items-center">
-            <div>© 1989 ASYNC RESEARCH INSTITUTE • ALL RIGHTS RESERVED • DO NOT DISTRIBUTE</div>
-            <div class="flex items-center gap-8">
-                <span onclick="window.location.reload()" class="cursor-pointer">REBOOT THRESHOLD</span>
-                <span class="text-[#0f0]">CONNECTED TO MAINFRAME</span>
-            </div>
+        <!-- FOOTER -->
+        <div class="bg-[#111] border-t-4 border-[#0f0] py-4 px-8 flex justify-between text-xl">
+            <div>© 1989 ASYNC RESEARCH INSTITUTE • CLASSIFIED • DO NOT DISTRIBUTE</div>
+            <div onclick="rebootThreshold()" class="cursor-pointer hover:text-[#0ff]">REBOOT THRESHOLD</div>
         </div>
     </div>
 
-    <!-- === FOUND FOOTAGE CRT TV MODAL === -->
-    <div id="found-footage-modal" onclick="if(event.target.id==='found-footage-modal')closeFoundFootage()" class="hidden fixed inset-0 bg-black/95 z-[10000] flex items-center justify-center">
-        <div class="crt w-[920px] bg-[#222] border-8 border-[#333] shadow-2xl rounded-3xl p-8 relative" style="box-shadow: 0 0 80px #000, inset 0 0 80px rgba(255,255,100,0.3);">
+    <!-- === FOUND FOOTAGE DARK ROOM TV MODAL === -->
+    <div id="tv-modal" onclick="if(event.target.id==='tv-modal') closeFoundFootage()" class="hidden fixed inset-0 z-[99999] flex items-center justify-center">
+        <div id="crt-tv" class="w-[960px] bg-[#1a1a1a] border-[24px] border-[#333] rounded-2xl p-6 relative crt">
             
-            <!-- TV Bezel -->
-            <div class="bg-[#111] rounded-2xl p-4 border-8 border-[#444]">
-                
-                <!-- Screen -->
-                <div id="tv-screen" class="relative bg-black aspect-video rounded-xl overflow-hidden border-8 border-[#222] crt">
-                    
-                    <!-- Default static / insert prompt -->
-                    <div id="tv-insert-screen" class="absolute inset-0 flex flex-col items-center justify-center text-[#0f0] text-5xl">
-                        <div class="text-6xl mb-8 animate-pulse">INSERT VHS TAPE</div>
-                        <div class="w-40 h-40 border-8 border-[#ff0] rounded flex items-center justify-center text-8xl rotate-12">📼</div>
-                        <p class="mt-12 text-3xl text-[#fff]">KANE PIXELS • BACKROOMS COLLECTION</p>
-                        <p class="text-xl mt-4 opacity-70">1990 • FOUND FOOTAGE • HIGH-QUALITY REMASTERED</p>
-                    </div>
-                    
-                    <!-- Video player container -->
-                    <div id="tv-player" class="hidden absolute inset-0 bg-black flex flex-col">
-                        <iframe id="video-iframe" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>
-                    </div>
+            <!-- TV Screen -->
+            <div class="relative bg-black aspect-video rounded border-8 border-[#222] overflow-hidden">
+                <!-- Static / Noise Screen -->
+                <div id="tv-static" class="absolute inset-0 bg-[#111] flex items-center justify-center">
+                    <div class="text-[#0f0] text-6xl animate-pulse tracking-widest">VHS NOISE • INSERT TAPE</div>
+                    <div class="absolute inset-0 bg-[repeating-linear-gradient(0deg,#000_0px,#000_2px,#fff_2px,#fff_4px)] opacity-20 animate-[noise_0.4s_linear_infinite]"></div>
+                </div>
+
+                <!-- Video Player -->
+                <div id="tv-player" class="hidden absolute inset-0">
+                    <iframe id="video-frame" class="w-full h-full" frameborder="0" allowfullscreen allow="autoplay"></iframe>
                 </div>
             </div>
 
-            <!-- VHS Rack below TV -->
-            <div class="mt-6 flex gap-4 overflow-x-auto pb-4">
-                <!-- Dynamically populated by JS -->
-            </div>
+            <!-- VHS Rack -->
+            <div id="vhs-rack" class="mt-8 flex gap-6 overflow-x-auto pb-6"></div>
 
-            <!-- TV controls -->
-            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-8 text-4xl text-[#0f0]">
-                <button onclick="ejectVHS()" class="hover:scale-110">⏏</button>
-                <button onclick="closeFoundFootage()" class="hover:scale-110">⏻</button>
+            <!-- TV Controls -->
+            <div class="absolute bottom-8 right-8 flex gap-8 text-5xl">
+                <button onclick="ejectTape()" class="hover:text-[#ff0]">⏏</button>
+                <button onclick="closeFoundFootage()" class="hover:text-[#ff0]">⏻</button>
             </div>
-
-            <div onclick="closeFoundFootage()" class="absolute top-8 right-8 text-5xl text-[#f00] cursor-pointer hover:rotate-90 transition">✕</div>
         </div>
     </div>
 
-    <!-- ADMIN PANEL MODAL -->
-    <div id="admin-modal" onclick="if(event.target.id==='admin-modal')hideAdminPanel()" class="hidden fixed inset-0 bg-black/90 z-[11000] flex items-center justify-center">
-        <div class="admin-panel w-[860px] bg-white/10 border border-[#0ff] p-12 text-[#0ff] rounded-2xl shadow-[0_0_100px_#0ff]">
-            <h2 class="text-6xl mb-8 text-center">ADMIN OVERRIDE • LEVEL 5 CLEARANCE</h2>
+    <!-- ADMIN PANEL -->
+    <div id="admin-modal" onclick="if(event.target.id==='admin-modal') hideAdmin()" class="hidden fixed inset-0 bg-black/90 z-[100000] flex items-center justify-center">
+        <div class="admin-glass w-[820px] border-4 border-[#0ff] p-12 text-[#0ff]">
+            <h2 class="text-6xl text-center mb-12">LEVEL 5 OVERRIDE • DIRECTOR ACCESS</h2>
             <div class="grid grid-cols-2 gap-8 text-3xl">
-                <div class="border border-[#0ff] p-8">LPMDS SCHEMATICS<br><span class="text-4xl text-[#ff0]">DOWNLOAD</span></div>
-                <div class="border border-[#0ff] p-8">ENTITY CONTAINMENT PROTOCOLS<br><span class="text-4xl text-[#f00]">VIEW</span></div>
-                <div class="border border-[#0ff] p-8">FULL KANE PIXELS ARCHIVE UNLOCKED</div>
-                <div class="border border-[#0ff] p-8">THRESHOLD REBOOT CODES<br><span class="text-[#0f0]">CLASSIFIED</span></div>
+                <div class="border border-[#0ff] p-8 hover:bg-white/10 cursor-pointer">THRESHOLD REBOOT CODES</div>
+                <div class="border border-[#0ff] p-8 hover:bg-white/10 cursor-pointer">ENTITY CONTAINMENT PROTOCOLS</div>
+                <div class="border border-[#0ff] p-8 hover:bg-white/10 cursor-pointer">FULL KANE ARCHIVE UNLOCKED</div>
+                <div class="border border-[#0ff] p-8 hover:bg-white/10 cursor-pointer">LPMDS SCHEMATICS</div>
             </div>
-            <div class="text-center mt-12 text-2xl opacity-60">You have been logged. Have a nice day, Director.</div>
         </div>
     </div>
 
     <script>
-        // Tailwind script already loaded
-        function initializeTailwind() {
-            tailwind.config = {
-                content: [],
-                theme: { extend: {} }
-            }
+        // Tailwind
+        tailwind.config = { content: [] };
+
+        // Kane Pixels videos (high quality embeds)
+        const kaneVideos = [
+            { title: "The Backrooms (Found Footage)", id: "H4dGpz6cnHo", year: "2022" },
+            { title: "Mar11_90_ARCHIVE.tar", id: "k0L8SM32ENI", year: "2022" },
+            { title: "Backrooms - The Third Test", id: "tvmEc7JhR0E", year: "2022" },
+            { title: "Backrooms - First Contact", id: "eXdIDjzy6KY", year: "2022" },
+            { title: "Backrooms - Missing Persons", id: "py6c5NaHeB8", year: "2022" },
+            { title: "Backrooms - Informational Video", id: "ZIFhglHn3W0", year: "2022" },
+            { title: "Backrooms - Autopsy Report", id: "example-autopsy", year: "2022" },
+            { title: "Backrooms - Motion Detected", id: "example-motion", year: "2022" },
+            { title: "Backrooms - Prototype", id: "example-prototype", year: "2023" },
+            { title: "Backrooms - Reunion", id: "AsQLinTnvc0", year: "2023" }
+        ];
+
+        let radioOn = false;
+        let radioAudio = null;
+        let squelchOn = new Audio("https://freesound.org/data/previews/524/524205_10399754-lq.mp3"); // squelch example
+        let squelchOff = new Audio("https://freesound.org/data/previews/524/524205_10399754-lq.mp3");
+
+        // Fake live log
+        function startLiveLog() {
+            const logEl = document.getElementById('live-log');
+            const entries = [
+                "1989-07-02 14:22 > Threshold test #4 successful",
+                "1989-07-02 14:31 > Smiler sighting in Level 0 confirmed",
+                "1989-07-02 14:45 > 2 researchers no-clipped",
+                "1989-07-02 15:03 > Entity containment holding"
+            ];
+            let i = 0;
+            setInterval(() => {
+                logEl.innerHTML += `<div>${entries[i % entries.length]}</div>`;
+                logEl.scrollTop = logEl.scrollHeight;
+                i++;
+            }, 4800);
         }
 
-        // Video database – all Kane Pixels Backrooms videos (high quality YouTube embeds)
-        const kaneVideos = [
-            {
-                title: "The Backrooms (Found Footage)",
-                id: "H4dGpz6cnHo",
-                year: "1996"
-            },
-            {
-                title: "Mar11_90_ARCHIVE.tar",
-                id: "k0L8SM32ENI",
-                year: "1990"
-            },
-            {
-                title: "Backrooms - The Third Test",
-                id: "tvmEc7JhR0E",
-                year: "1989"
-            },
-            {
-                title: "Backrooms - First Contact",
-                id: "eXdIDjzy6KY",
-                year: "1989"
-            },
-            {
-                title: "Backrooms - Missing Persons",
-                id: "5w5W9X6fR1E",
-                year: "1990"
-            },
-            {
-                title: "Backrooms - Informational Video",
-                id: "ITuGdHxHi0A",
-                year: "1988"
-            },
-            {
-                title: "Backrooms - Autopsy Report",
-                id: "w1sV4f3X9kM",
-                year: "1990"
-            },
-            {
-                title: "Backrooms - Reunion",
-                id: "AsQLinTnvc0",
-                year: "1990"
-            },
-            {
-                title: "Backrooms - Damage Control",
-                id: "example-damage", // real ID would be added; placeholder for demo
-                year: "1990"
-            },
-            {
-                title: "Backrooms - Pitfalls",
-                id: "example-pitfalls",
-                year: "1990"
+        // Personnel counter
+        function animatePersonnel() {
+            let count = 4;
+            const el = document.getElementById('personnel-count');
+            setInterval(() => {
+                count = (count % 12) + 5;
+                el.textContent = String(count).padStart(2, '0');
+            }, 6500);
+        }
+
+        // Epic boot sequence
+        function runBootSequence() {
+            const progress = document.getElementById('boot-progress');
+            const phase = document.getElementById('boot-phase');
+            const messages = [
+                "CALIBRATING LPMDS COILS...",
+                "SYNCHRONIZING THRESHOLD MATRIX...",
+                "WARNING: MAGNETIC DISTORTION RISING",
+                "ENTITY ACTIVITY DETECTED IN LEVEL 0",
+                "NO-CLIP PROTOCOLS ENGAGED",
+                "THRESHOLD STABILIZING...",
+                "THRESHOLD OPEN • ACCESS GRANTED"
+            ];
+
+            let step = 0;
+            progress.style.transition = 'width 16s linear';
+            progress.style.width = '100%';
+
+            const interval = setInterval(() => {
+                phase.textContent = messages[step] || "WELCOME, OPERATOR";
+                step++;
+                if (step >= messages.length) clearInterval(interval);
+            }, 2100);
+
+            setTimeout(() => {
+                document.getElementById('boot-screen').classList.add('hidden');
+                document.getElementById('main-ui').classList.remove('hidden');
+                document.getElementById('main-ui').classList.add('flex', 'flex-col');
+                startLiveLog();
+                animatePersonnel();
+                startCountdown();
+            }, 16500);
+        }
+
+        // Simple countdown
+        function startCountdown() {
+            let minutes = 12;
+            let seconds = 47;
+            const el = document.getElementById('countdown');
+            setInterval(() => {
+                seconds--;
+                if (seconds < 0) { seconds = 59; minutes--; }
+                if (minutes < 0) minutes = 0;
+                el.textContent = `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+            }, 1200);
+        }
+
+        // Radio toggle with squelch
+        function toggleRadio() {
+            radioOn = !radioOn;
+            const status = document.getElementById('radio-status');
+            
+            if (radioOn) {
+                status.textContent = "TRANSMITTING";
+                status.classList.add('text-[#0f0]');
+                squelchOn.currentTime = 0;
+                squelchOn.play().catch(()=>{});
+                
+                // Fake looping chatter (you can replace URL with real radio chatter loop)
+                if (!radioAudio) {
+                    radioAudio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"); // placeholder - replace with real chatter
+                    radioAudio.loop = true;
+                    radioAudio.volume = 0.25;
+                }
+                radioAudio.play().catch(()=>{});
+            } else {
+                status.textContent = "OFFLINE";
+                status.classList.remove('text-[#0f0]');
+                squelchOff.currentTime = 0;
+                squelchOff.play().catch(()=>{});
+                if (radioAudio) radioAudio.pause();
             }
-            // Add more from official playlist as needed – all 4K remastered quality
-        ]
+        }
 
         // Populate VHS rack
-        function populateVHSRack() {
-            const rack = document.querySelector('#found-footage-modal .flex.gap-4')
-            rack.innerHTML = ''
-            kaneVideos.forEach((video, i) => {
-                const tape = document.createElement('div')
-                tape.className = `vhs-tape flex-shrink-0 w-28 h-40 bg-gradient-to-b from-[#f00] to-[#900] border-4 border-[#ff0] flex flex-col items-center justify-center cursor-pointer text-black text-center text-sm shadow-xl hover:shadow-2xl`
-                tape.style.transform = `rotate(${Math.random()*8-4}deg)`
+        function populateVHS() {
+            const rack = document.getElementById('vhs-rack');
+            rack.innerHTML = '';
+            kaneVideos.forEach(video => {
+                const tape = document.createElement('div');
+                tape.className = `vhs-tape flex-shrink-0 w-32 h-44 bg-gradient-to-br from-red-700 to-red-950 border-4 border-[#ff0] flex flex-col items-center justify-center text-black text-center cursor-pointer shadow-2xl`;
+                tape.style.transform = `rotate(${Math.random()*12 - 6}deg)`;
                 tape.innerHTML = `
-                    <div class="text-5xl mb-1">📼</div>
-                    <div class="font-bold leading-none">${video.title}</div>
-                    <div class="text-xs mt-2">${video.year}</div>
-                `
-                tape.onclick = () => insertVHS(video.id, video.title)
-                rack.appendChild(tape)
-            })
+                    <div class="text-6xl mb-3">📼</div>
+                    <div class="text-sm leading-tight px-2">${video.title}</div>
+                    <div class="text-xs mt-auto opacity-70">${video.year}</div>
+                `;
+                tape.onclick = () => insertVHS(video.id, video.title);
+                rack.appendChild(tape);
+            });
         }
 
-        // Insert VHS animation + play
         function insertVHS(videoId, title) {
-            const insertScreen = document.getElementById('tv-insert-screen')
-            const player = document.getElementById('tv-player')
-            const iframe = document.getElementById('video-iframe')
+            document.getElementById('tv-static').classList.add('hidden');
+            const player = document.getElementById('tv-player');
+            player.classList.remove('hidden');
+            
+            const iframe = document.getElementById('video-frame');
+            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
             
             // Animate all tapes
-            document.querySelectorAll('.vhs-tape').forEach(t => t.classList.add('inserted'))
-            
-            insertScreen.style.transition = 'opacity 0.6s'
-            insertScreen.style.opacity = '0'
-            
-            setTimeout(() => {
-                insertScreen.classList.add('hidden')
-                player.classList.remove('hidden')
-                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&amp;rel=0&amp;modestbranding=1&amp;playsinline=1`
-                
-                // Title banner inside player
-                const banner = document.createElement('div')
-                banner.style.cssText = 'position:absolute;top:0;left:0;right:0;background:#000;color:#0f0;padding:8px 20px;font-size:22px;text-align:center;border-bottom:4px solid #ff0;z-index:30;'
-                banner.textContent = `NOW PLAYING: ${title} • ASYNC FOUND FOOTAGE`
-                player.appendChild(banner)
-                
-                // Auto-remove banner after 4s
-                setTimeout(() => banner.remove(), 4000)
-            }, 700)
+            document.querySelectorAll('.vhs-tape').forEach(t => t.classList.add('inserted'));
         }
 
-        function ejectVHS() {
-            const insertScreen = document.getElementById('tv-insert-screen')
-            const player = document.getElementById('tv-player')
-            const iframe = document.getElementById('video-iframe')
-            
-            player.classList.add('hidden')
-            insertScreen.classList.remove('hidden')
-            insertScreen.style.opacity = '1'
-            iframe.src = ''
-            
-            // Reset tapes
-            document.querySelectorAll('.vhs-tape').forEach(t => t.classList.remove('inserted'))
+        function ejectTape() {
+            document.getElementById('tv-static').classList.remove('hidden');
+            document.getElementById('tv-player').classList.add('hidden');
+            document.getElementById('video-frame').src = '';
+            document.querySelectorAll('.vhs-tape').forEach(t => t.classList.remove('inserted'));
         }
 
-        // Open Found Footage
         function openFoundFootage() {
-            document.getElementById('found-footage-modal').classList.remove('hidden')
-            document.getElementById('found-footage-modal').classList.add('flex')
-            populateVHSRack()
+            document.getElementById('tv-modal').classList.remove('hidden');
+            document.getElementById('tv-modal').classList.add('flex');
+            populateVHS();
         }
 
         function closeFoundFootage() {
-            const modal = document.getElementById('found-footage-modal')
-            modal.classList.add('hidden')
-            modal.classList.remove('flex')
-            ejectVHS() // clean up
+            document.getElementById('tv-modal').classList.add('hidden');
+            document.getElementById('tv-modal').classList.remove('flex');
+            ejectTape();
         }
 
-        // Threshold boot sequence
-        function startThresholdBoot() {
-            const progressBar = document.getElementById('progress-bar')
-            const status = document.getElementById('boot-status')
-            
-            const messages = [
-                "CALIBRATING MAGNETIC DISTORTION...",
-                "SYNCHRONIZING THRESHOLD COILS...",
-                "ESTABLISHING NO-CLIP LINK...",
-                "WARNING: ENTITY ACTIVITY DETECTED",
-                "THRESHOLD OPEN • ACCESS GRANTED"
-            ]
-            
-            let i = 0
-            const interval = setInterval(() => {
-                progressBar.style.width = `${(i + 1) * 20}%`
-                status.textContent = messages[i] || "THRESHOLD STABLE • WELCOME"
-                i++
-                if (i >= 5) {
-                    clearInterval(interval)
-                    setTimeout(() => {
-                        // Transition to main UI
-                        document.getElementById('boot-screen').style.opacity = '0'
-                        setTimeout(() => {
-                            document.getElementById('boot-screen').classList.add('hidden')
-                            document.getElementById('main-ui').classList.remove('hidden')
-                            document.getElementById('main-ui').classList.add('flex', 'flex-col')
-                            
-                            // Subtle CRT flicker on main UI
-                            console.log('%c✅ ASYNC FACILITY ONLINE • 3333× UPGRADE COMPLETE', 'color:#0ff;font-size:22px')
-                        }, 800)
-                    }, 1200)
-                }
-            }, 650)
+        function switchTab(n) {
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${n}`).classList.remove('hidden');
         }
 
-        // Admin panel shortcut
-        let adminClicks = 0
-        function triggerAdminShortcut() {
-            adminClicks++
-            if (adminClicks >= 5) {
-                showAdminPanel()
-                adminClicks = 0
-            }
-        }
-        
-        function showAdminPanel() {
-            document.getElementById('admin-modal').classList.remove('hidden')
-            document.getElementById('admin-modal').classList.add('flex')
-        }
-        
-        function hideAdminPanel() {
-            const modal = document.getElementById('admin-modal')
-            modal.classList.add('hidden')
-            modal.classList.remove('flex')
-        }
-
-        // Keyboard shortcut
-        function addKeyboardShortcuts() {
-            document.addEventListener('keydown', e => {
-                if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') {
-                    e.preventDefault()
-                    showAdminPanel()
-                }
-                if (e.key === '/' && document.getElementById('found-footage-modal').classList.contains('hidden')) {
-                    openFoundFootage()
-                }
-            })
-        }
-
-        // Navigation between tabs
-        function navigateToSection(section) {
-            // Hide all content
-            document.querySelectorAll('#main-ui > div[id^="content-"]').forEach(el => el.classList.add('hidden'))
-            
-            // Show requested
-            const target = document.getElementById(`content-${section}`)
-            if (target) target.classList.remove('hidden')
-            else {
-                // Default back to home
-                document.getElementById('content-home').classList.remove('hidden')
+        function triggerAdmin() {
+            // 5 clicks easter egg
+            window.adminClicks = (window.adminClicks || 0) + 1;
+            if (window.adminClicks >= 5) {
+                document.getElementById('admin-modal').classList.remove('hidden');
+                document.getElementById('admin-modal').classList.add('flex');
+                window.adminClicks = 0;
             }
         }
 
-        function logoutSimulation() {
-            if (confirm('Terminate session and reboot Threshold?')) {
-                window.location.reload()
+        function hideAdmin() {
+            document.getElementById('admin-modal').classList.add('hidden');
+            document.getElementById('admin-modal').classList.remove('flex');
+        }
+
+        function rebootThreshold() {
+            location.reload();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') {
+                document.getElementById('admin-modal').classList.remove('hidden');
+                document.getElementById('admin-modal').classList.add('flex');
             }
-        }
+            if (e.key === '/' && document.getElementById('tv-modal').classList.contains('hidden')) {
+                openFoundFootage();
+            }
+        });
 
-        // Initialize everything
-        function launchSite() {
-            initializeTailwind()
-            startThresholdBoot()
-            addKeyboardShortcuts()
-            
-            console.log('%c🚀 3333× UPGRADE COMPLETE — ASYNC FACILITY CLASSIFIED INTERFACE LOADED', 'background:#f00;color:#ff0;padding:2px 6px;font-size:18px')
-            console.log('✅ Threshold animation active')
-            console.log('✅ CRT VHS TV with Kane Pixels full series (high-quality embeds)')
-            console.log('✅ Admin panel shortcut (CTRL+ALT+A or click logo 5×)')
-            console.log('✅ NASA-PC level polish, scanlines, flicker, and 1989 aesthetic')
-        }
-
-        // Auto-launch on load
-        window.onload = launchSite
+        // Launch
+        window.onload = () => {
+            runBootSequence();
+            console.log('%cASYNC FACILITY ONLINE — 10000× UPGRADE COMPLETE', 'color:#0ff;font-size:20px');
+        };
     </script>
 </body>
 </html>
