@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ASYNC RESEARCH FACILITY • CLASSIFIED • THRESHOLD ACTIVE</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+  --acid: #ffff00;
+  --toxic: #00ff00;
+  --warn: #ff0000;
+  --cyan: #00ffff;
+  --dim-green: #00aa00;
+  --dim-yellow: #aaaa00;
+  --bg: #000000;
+  --panel: #030303;
+  --border: #1a1a00;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:#000;
+  color:var(--toxic);
+  font-family:'VT323',monospace;
+  overflow-x:hidden;
+  cursor:crosshair;
+}
+/* ── CRT MASTER OVERLAY ── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.18) 0px,rgba(0,0,0,0.18) 1px,transparent 1px,transparent 3px);
+  animation:scanroll 8s linear infinite;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.9) 100%);
+}
+@keyframes scanroll{0%{background-position:0 0;}100%{background-position:0 100px;}}
+
+/* ── FLICKER ── */
+@keyframes flicker{
+  0%,19%,21%,23%,25%,54%,56%,100%{opacity:1;}
+  20%,24%,55%{opacity:0.4;}
+}
+@keyframes softflicker{
+  0%,90%,100%{opacity:1;}
+  92%{opacity:0.85;}
+  95%{opacity:0.95;}
+}
+@keyframes rgbsplit{
+  0%,100%{text-shadow:0 0 0 transparent;}
+  10%{text-shadow:-2px 0 var(--warn),2px 0 var(--cyan);}
+  20%{text-shadow:1px 0 var(--acid),-1px 0 var(--warn);}
+  30%{text-shadow:0 0 0 transparent;}
+}
+@keyframes borderbreath{
+  0%,100%{box-shadow:0 0 4px var(--toxic),inset 0 0 4px rgba(0,255,0,0.1);}
+  50%{box-shadow:0 0 12px var(--toxic),0 0 24px rgba(0,255,0,0.3),inset 0 0 8px rgba(0,255,0,0.2);}
+}
+@keyframes warnbreath{
+  0%,100%{box-shadow:0 0 4px var(--warn),inset 0 0 4px rgba(255,0,0,0.1);}
+  50%{box-shadow:0 0 14px var(--warn),0 0 28px rgba(255,0,0,0.3),inset 0 0 8px rgba(255,0,0,0.2);}
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+@keyframes shake{
+  0%,100%{transform:translate(0,0);}
+  10%{transform:translate(-2px,1px);}
+  20%{transform:translate(2px,-1px);}
+  30%{transform:translate(-1px,2px);}
+  40%{transform:translate(1px,-2px);}
+  50%{transform:translate(-2px,0);}
+  60%{transform:translate(2px,1px);}
+  70%{transform:translate(-1px,-1px);}
+  80%{transform:translate(1px,2px);}
+  90%{transform:translate(-2px,-1px);}
+}
+@keyframes staticburst{
+  0%,100%{opacity:0;}
+  50%{opacity:0.08;}
+}
+@keyframes slidedown{from{transform:translateY(-100%);}to{transform:translateY(0);}}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
+@keyframes scrollup{0%{transform:translateY(0);}100%{transform:translateY(-50%);}}
+@keyframes levitate{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes counterblink{0%,100%{color:var(--warn);}50%{color:#ff6600;}}
+@keyframes warningslide{
+  0%{transform:translateX(120%);}
+  10%,90%{transform:translateX(0);}
+  100%{transform:translateX(120%);}
+}
+@keyframes tapeinsert{
+  0%{transform:translateY(-60px);opacity:0;}
+  40%{transform:translateY(8px);opacity:1;}
+  60%{transform:translateY(-3px);}
+  80%{transform:translateY(4px);}
+  100%{transform:translateY(0);opacity:1;}
+}
+@keyframes tvglow{
+  0%,100%{box-shadow:0 0 40px rgba(80,80,255,0.3),0 0 80px rgba(80,80,255,0.15),inset 0 0 30px rgba(0,0,0,0.9);}
+  50%{box-shadow:0 0 60px rgba(80,80,255,0.5),0 0 120px rgba(80,80,255,0.25),inset 0 0 20px rgba(0,0,0,0.7);}
+}
+@keyframes staticnoise{
+  0%{background-position:0 0;}
+  100%{background-position:100px 100px;}
+}
+@keyframes transmitpulse{
+  0%,100%{background:#ff0000;box-shadow:0 0 6px #ff0000;}
+  50%{background:#ff4400;box-shadow:0 0 14px #ff4400,0 0 28px rgba(255,0,0,0.5);}
+}
+@keyframes logscroll{0%{transform:translateY(0);}100%{transform:translateY(-50%);}}
+@keyframes horizscan{
+  0%{top:-10%;}100%{top:110%;}
+}
+@keyframes glitch{
+  0%,96%,100%{clip-path:none;transform:none;}
+  97%{clip-path:polygon(0 20%,100% 20%,100% 30%,0 30%);transform:translate(-4px,0);}
+  98%{clip-path:polygon(0 60%,100% 60%,100% 75%,0 75%);transform:translate(4px,0);}
+  99%{clip-path:polygon(0 40%,100% 40%,100% 50%,0 50%);transform:translate(-2px,0);}
+}
+
+/* ── BOOT SCREEN ── */
+#bootScreen{
+  position:fixed;inset:0;z-index:99999;background:#000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+#bootCanvas{position:absolute;inset:0;width:100%;height:100%;}
+#bootTerminal{
+  position:relative;z-index:10;
+  width:min(700px,94vw);
+  font-family:'VT323',monospace;
+  font-size:clamp(13px,2vw,18px);
+  color:var(--toxic);
+  line-height:1.5;
+  text-shadow:0 0 8px var(--toxic);
+}
+#bootTerminal .line{animation:fadein 0.05s forwards;opacity:0;}
+#thresholdReveal{
+  position:absolute;inset:0;z-index:20;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  font-family:'VT323',monospace;
+}
+#thresholdReveal h1{
+  font-size:clamp(40px,10vw,110px);
+  color:var(--acid);
+  text-shadow:0 0 30px var(--acid),0 0 60px rgba(255,255,0,0.5);
+  letter-spacing:0.15em;
+  animation:rgbsplit 0.5s infinite;
+}
+#thresholdReveal p{
+  font-size:clamp(16px,3vw,28px);
+  color:var(--warn);
+  letter-spacing:0.3em;
+  margin-top:16px;
+  animation:blink 0.6s infinite;
+}
+
+/* ── MAIN UI ── */
+#mainUI{opacity:0;transition:opacity 1s;}
+#mainUI.visible{opacity:1;}
+
+/* ── TOP BAR ── */
+#topbar{
+  position:sticky;top:0;z-index:9990;
+  background:rgba(0,0,0,0.97);
+  border-bottom:1px solid var(--toxic);
+  box-shadow:0 2px 20px rgba(0,255,0,0.15);
+  animation:softflicker 4s infinite;
+}
+.logo-text{
+  font-size:clamp(14px,2.5vw,22px);letter-spacing:0.1em;
+  color:var(--acid);
+  text-shadow:0 0 10px var(--acid);
+  animation:rgbsplit 6s infinite,softflicker 3s infinite;
+}
+.personnel-counter{
+  color:var(--warn);
+  font-size:clamp(11px,1.8vw,16px);
+  animation:counterblink 1.5s infinite;
+}
+.status-led{
+  display:inline-block;width:10px;height:10px;border-radius:50%;
+  background:var(--toxic);
+  box-shadow:0 0 8px var(--toxic);
+  animation:pulse 1s infinite;
+}
+.status-led.red{background:var(--warn);box-shadow:0 0 8px var(--warn);}
+.status-led.yellow{background:var(--acid);box-shadow:0 0 8px var(--acid);}
+
+/* ── NAV TABS ── */
+.tab-btn{
+  font-family:'VT323',monospace;
+  font-size:clamp(14px,2vw,20px);
+  color:var(--dim-green);
+  padding:8px 16px;
+  border:1px solid transparent;
+  background:transparent;
+  cursor:pointer;
+  letter-spacing:0.1em;
+  transition:all 0.2s;
+  position:relative;
+}
+.tab-btn:hover,.tab-btn.active{
+  color:var(--toxic);
+  border-color:var(--toxic);
+  box-shadow:0 0 10px rgba(0,255,0,0.4);
+  text-shadow:0 0 8px var(--toxic);
+}
+.tab-btn.active::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;
+  background:var(--toxic);
+  box-shadow:0 0 8px var(--toxic);
+}
+
+/* ── PANELS ── */
+.panel{
+  border:1px solid var(--dim-green);
+  background:rgba(0,8,0,0.85);
+  padding:16px;
+  position:relative;
+  animation:borderbreath 3s ease-in-out infinite;
+}
+.panel-warn{
+  border-color:var(--warn);
+  animation:warnbreath 2s ease-in-out infinite;
+}
+.panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--toxic),transparent);
+  opacity:0.5;
+}
+.panel-title{
+  color:var(--acid);
+  font-size:clamp(13px,2vw,18px);
+  letter-spacing:0.2em;
+  border-bottom:1px solid var(--dim-green);
+  padding-bottom:6px;
+  margin-bottom:10px;
+  text-shadow:0 0 6px var(--acid);
+}
+.panel-title::before{content:'[ ';color:var(--dim-green);}
+.panel-title::after{content:' ]';color:var(--dim-green);}
+
+/* ── HERO ── */
+#heroSection{
+  min-height:100vh;
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+#heroBg{
+  position:absolute;inset:0;z-index:0;
+  background:
+    repeating-linear-gradient(90deg,transparent,transparent 80px,rgba(0,255,0,0.015) 80px,rgba(0,255,0,0.015) 81px),
+    repeating-linear-gradient(0deg,transparent,transparent 80px,rgba(0,255,0,0.015) 80px,rgba(0,255,0,0.015) 81px),
+    radial-gradient(ellipse at 30% 50%,rgba(0,20,0,0.8) 0%,#000 70%);
+}
+#heroBg::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 60%,rgba(0,255,0,0.03) 100%);
+  animation:staticburst 3s infinite;
+}
+.hero-title{
+  font-size:clamp(28px,7vw,90px);
+  color:var(--acid);
+  letter-spacing:0.08em;
+  text-shadow:0 0 20px var(--acid),0 0 40px rgba(255,255,0,0.4);
+  animation:glitch 8s infinite,softflicker 4s infinite;
+  text-align:center;
+}
+.hero-sub{
+  color:var(--warn);
+  font-size:clamp(14px,3vw,32px);
+  letter-spacing:0.4em;
+  animation:blink 1.2s infinite;
+  text-shadow:0 0 8px var(--warn);
+}
+.countdown-box{
+  border:2px solid var(--warn);
+  padding:12px 24px;
+  font-size:clamp(20px,4vw,48px);
+  color:var(--warn);
+  text-shadow:0 0 12px var(--warn);
+  background:rgba(255,0,0,0.05);
+  animation:warnbreath 1.5s infinite;
+  letter-spacing:0.2em;
+}
+
+/* ── LEVEL CARDS ── */
+.level-card{
+  border:1px solid var(--dim-green);
+  background:rgba(0,5,0,0.9);
+  padding:16px;
+  cursor:pointer;
+  transition:all 0.3s;
+  position:relative;
+  overflow:hidden;
+  animation:borderbreath 4s ease-in-out infinite;
+}
+.level-card:hover{
+  border-color:var(--toxic);
+  transform:scale(1.02);
+  box-shadow:0 0 20px rgba(0,255,0,0.3);
+}
+.level-card::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(circle at center,rgba(0,255,0,0.03) 0%,transparent 70%);
+  animation:spin 20s linear infinite;
+}
+.danger-badge{
+  font-size:12px;letter-spacing:0.2em;padding:3px 8px;
+  border:1px solid currentColor;
+  display:inline-block;
+}
+.danger-safe{color:var(--toxic);border-color:var(--toxic);}
+.danger-warn{color:var(--acid);border-color:var(--acid);}
+.danger-critical{color:var(--warn);border-color:var(--warn);animation:warnbreath 1s infinite;}
+
+/* ── REDACTED ── */
+.redacted{
+  background:var(--warn);
+  color:var(--warn);
+  padding:0 4px;
+  user-select:none;
+  position:relative;
+}
+.redacted::after{content:'██████';}
+
+/* ── VHS / FOUND FOOTAGE ── */
+#foundFootageModal{
+  position:fixed;inset:0;z-index:99990;
+  background:rgba(0,0,0,0.97);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+}
+#foundFootageModal.open{display:flex;}
+#tvContainer{
+  position:relative;
+  width:min(560px,92vw);
+}
+#tvBody{
+  background:#0a0a0a;
+  border:6px solid #1a1a1a;
+  border-radius:16px;
+  padding:24px 24px 40px;
+  box-shadow:0 0 60px rgba(60,60,180,0.4),0 0 120px rgba(60,60,180,0.2),0 30px 60px rgba(0,0,0,0.9);
+  animation:tvglow 3s ease-in-out infinite;
+}
+#tvScreen{
+  background:#000;
+  width:100%;
+  aspect-ratio:4/3;
+  border:3px solid #050510;
+  border-radius:6px;
+  position:relative;
+  overflow:hidden;
+}
+#tvScreen::before{
+  content:'';position:absolute;inset:0;z-index:10;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.25) 0,rgba(0,0,0,0.25) 1px,transparent 1px,transparent 3px);
+}
+#tvScreen::after{
+  content:'';position:absolute;inset:0;z-index:11;pointer-events:none;
+  border-radius:4px;
+  box-shadow:inset 0 0 40px rgba(0,0,0,0.8);
+}
+#staticLayer{
+  position:absolute;inset:0;z-index:1;
+  image-rendering:pixelated;
+}
+#youtubeFrame{position:absolute;inset:0;z-index:2;display:none;}
+#tvLabel{
+  text-align:center;margin-top:12px;
+  font-family:'VT323',monospace;font-size:14px;
+  color:#333;letter-spacing:0.3em;
+}
+#tapeSlot{
+  position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);
+  width:120px;height:18px;
+  background:#050505;border:2px solid #111;border-radius:3px;
+}
+#tapeIndicator{
+  position:absolute;top:8px;right:8px;
+  width:8px;height:8px;border-radius:50%;
+  background:#222;
+}
+.vhs-rack{
+  width:min(560px,92vw);
+  max-height:200px;
+  overflow-y:auto;
+  margin-top:16px;
+}
+.vhs-tape{
+  display:inline-flex;align-items:center;gap:8px;
+  background:#0a0808;
+  border:1px solid #331a00;
+  padding:6px 12px;
+  margin:4px;
+  cursor:pointer;
+  font-family:'VT323',monospace;
+  font-size:14px;
+  color:#cc6600;
+  transition:all 0.2s;
+  border-radius:3px;
+}
+.vhs-tape:hover{border-color:var(--acid);color:var(--acid);box-shadow:0 0 8px rgba(255,255,0,0.3);}
+.vhs-tape.playing{border-color:var(--warn);color:var(--warn);animation:warnbreath 1s infinite;}
+.tape-icon{font-size:20px;}
+#insertedTape{
+  position:absolute;top:-40px;left:50%;transform:translateX(-50%);
+  display:none;
+  animation:tapeinsert 0.8s ease-out forwards;
+}
+
+/* ── RADIO ── */
+#radioWidget{
+  position:relative;
+  display:flex;align-items:center;gap:8px;
+  padding:4px 10px;
+  border:1px solid var(--dim-green);
+  background:rgba(0,10,0,0.8);
+  cursor:pointer;
+  user-select:none;
+}
+#radioWidget:hover{border-color:var(--toxic);}
+.radio-icon{font-size:20px;color:var(--toxic);}
+.transmitting-led{
+  display:none;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--warn);
+  box-shadow:0 0 8px var(--warn);
+  animation:transmitpulse 0.4s infinite;
+}
+.transmitting-led.active{display:block;}
+#radioVol{
+  width:50px;height:3px;
+  accent-color:var(--toxic);
+  cursor:pointer;
+}
+
+/* ── ARCHIVES ── */
+.doc-card{
+  border:1px solid #1a1a00;
+  background:rgba(5,5,0,0.9);
+  padding:16px;
+  margin-bottom:12px;
+  position:relative;
+  font-size:clamp(12px,1.8vw,15px);
+  line-height:1.7;
+}
+.doc-card::before{
+  content:'CLASSIFIED';
+  position:absolute;top:8px;right:8px;
+  color:rgba(255,0,0,0.25);
+  font-size:32px;
+  letter-spacing:0.2em;
+  transform:rotate(-15deg);
+  pointer-events:none;
+}
+.stamp{
+  display:inline-block;
+  border:3px solid var(--warn);
+  color:var(--warn);
+  padding:4px 12px;
+  font-size:24px;
+  letter-spacing:0.3em;
+  transform:rotate(-8deg);
+  margin:8px 0;
+  opacity:0.7;
+}
+
+/* ── LIVE FEED ── */
+#liveFeedScroll{
+  height:70vh;
+  overflow:hidden;
+  position:relative;
+  border:1px solid var(--dim-green);
+  background:#000;
+  padding:8px;
+}
+#liveFeedInner{
+  font-family:'VT323',monospace;
+  font-size:clamp(12px,1.8vw,16px);
+  line-height:1.8;
+  animation:logscroll 80s linear infinite;
+}
+.log-line{color:var(--dim-green);}
+.log-line.warn{color:var(--warn);}
+.log-line.yellow{color:var(--dim-yellow);}
+.log-line.red{color:var(--warn);animation:blink 0.5s infinite;}
+.log-line.cyan{color:var(--cyan);}
+
+/* ── ENTITY WARNING ── */
+#entityWarning{
+  position:fixed;bottom:24px;right:24px;z-index:9980;
+  width:min(360px,90vw);
+  border:2px solid var(--warn);
+  background:rgba(0,0,0,0.97);
+  padding:16px;
+  display:none;
+  animation:warningslide 8s ease-in-out forwards;
+  box-shadow:0 0 30px rgba(255,0,0,0.4);
+}
+#entityWarning .ew-title{
+  color:var(--warn);font-size:24px;letter-spacing:0.2em;
+  text-shadow:0 0 10px var(--warn);
+  animation:blink 0.3s infinite;
+}
+#entityWarning .ew-body{color:var(--acid);font-size:16px;margin-top:8px;line-height:1.5;}
+
+/* ── ADMIN PANEL ── */
+#adminPanel{
+  position:fixed;inset:0;z-index:99980;
+  background:rgba(0,0,0,0.98);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'VT323',monospace;
+}
+#adminPanel.open{display:flex;}
+#adminContent{
+  width:min(700px,92vw);
+  border:2px solid var(--acid);
+  padding:24px;
+  background:#000;
+  box-shadow:0 0 40px rgba(255,255,0,0.3);
+}
+.admin-title{color:var(--acid);font-size:36px;letter-spacing:0.3em;text-align:center;text-shadow:0 0 15px var(--acid);}
+.admin-row{
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid #1a1a00;
+  padding:10px 0;
+  color:var(--dim-yellow);
+  font-size:18px;
+}
+.admin-val{color:var(--toxic);}
+.admin-btn{
+  background:transparent;border:1px solid var(--dim-yellow);
+  color:var(--acid);font-family:'VT323',monospace;font-size:16px;
+  padding:4px 12px;cursor:pointer;letter-spacing:0.1em;
+  transition:all 0.2s;
+}
+.admin-btn:hover{border-color:var(--acid);box-shadow:0 0 8px rgba(255,255,0,0.4);}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#000;}
+::-webkit-scrollbar-thumb{background:var(--dim-green);}
+::-webkit-scrollbar-thumb:hover{background:var(--toxic);}
+
+/* ── STATIC OVERLAY ── */
+.static-overlay{
+  position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0.04;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  animation:staticnoise 0.1s steps(1) infinite;
+}
+
+/* ── HORIZONTAL SCAN ── */
+.hscan{
+  position:absolute;left:0;right:0;height:2px;z-index:8;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(0,255,0,0.4),transparent);
+  animation:horizscan 6s linear infinite;
+  opacity:0.5;
+}
+
+/* ── MISC ── */
+.glow-green{text-shadow:0 0 8px var(--toxic);}
+.glow-yellow{text-shadow:0 0 8px var(--acid);}
+.glow-red{text-shadow:0 0 8px var(--warn);}
+.glow-cyan{text-shadow:0 0 8px var(--cyan);}
+.mono{font-family:'Share Tech Mono',monospace;}
+.section-content{display:none;}
+.section-content.active{display:block;}
+.corner-tl,.corner-tr,.corner-bl,.corner-br{
+  position:absolute;width:12px;height:12px;
+}
+.corner-tl{top:0;left:0;border-top:2px solid var(--toxic);border-left:2px solid var(--toxic);}
+.corner-tr{top:0;right:0;border-top:2px solid var(--toxic);border-right:2px solid var(--toxic);}
+.corner-bl{bottom:0;left:0;border-bottom:2px solid var(--toxic);border-left:2px solid var(--toxic);}
+.corner-br{bottom:0;right:0;border-bottom:2px solid var(--toxic);border-right:2px solid var(--toxic);}
+.ambience-btn{
+  background:transparent;border:1px solid #222;
+  color:#333;font-family:'VT323',monospace;font-size:14px;
+  padding:2px 8px;cursor:pointer;
+  transition:all 0.3s;
+}
+.ambience-btn.active{border-color:var(--dim-green);color:var(--dim-green);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ BOOT SCREEN ══════════════════ -->
+<div id="bootScreen">
+  <canvas id="bootCanvas"></canvas>
+  <div id="bootTerminal"></div>
+  <div id="thresholdReveal">
+    <h1>THRESHOLD OPEN</h1>
+    <p>▶ INITIATING FACILITY ACCESS ◀</p>
+  </div>
+</div>
+
+<!-- ══════════════════ MAIN UI ══════════════════ -->
+<div id="mainUI">
+
+  <!-- TOP BAR -->
+  <div id="topbar" class="flex items-center justify-between px-4 py-2 flex-wrap gap-2">
+    <div class="flex items-center gap-3">
+      <div class="corner-tl"></div>
+      <span id="asyncLogo" class="logo-text cursor-pointer select-none" title="Click 5x for admin">
+        ⬡ ASYNC-RF
+      </span>
+      <div class="flex items-center gap-1">
+        <div class="status-led"></div>
+        <span style="font-size:12px;color:var(--dim-green);letter-spacing:0.15em;">ONLINE</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <div class="status-led red"></div>
+        <span style="font-size:12px;color:var(--warn);letter-spacing:0.15em;">THRESHOLD ACTIVE</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 flex-wrap">
+      <div class="personnel-counter">
+        PERSONNEL MISSING: <span id="missingCount">047</span>
+      </div>
+      <!-- Radio Widget -->
+      <div id="radioWidget" title="Toggle Radio Comms">
+        <span class="radio-icon">📻</span>
+        <span style="font-size:14px;color:var(--dim-green);letter-spacing:0.1em;">COMMS</span>
+        <div class="transmitting-led" id="transmitLed"></div>
+        <span id="radioStatus" style="font-size:12px;color:#333;letter-spacing:0.1em;">OFF</span>
+        <input type="range" id="radioVol" min="0" max="1" step="0.01" value="0.4" style="display:none;" onclick="event.stopPropagation()"/>
+      </div>
+      <!-- Ambience -->
+      <button class="ambience-btn" id="ambienceBtn" title="Fluorescent Hum">◎ HUM</button>
+      <!-- Reboot -->
+      <button class="ambience-btn" id="rebootBtn" style="border-color:#1a0000;color:#550000;" title="Reboot Threshold">⟳ REBOOT</button>
+    </div>
+  </div>
+
+  <!-- NAV TABS -->
+  <div style="background:rgba(0,4,0,0.95);border-bottom:1px solid #0a1a0a;padding:0 16px;display:flex;gap:0;flex-wrap:wrap;">
+    <button class="tab-btn active" data-tab="home">// HOME</button>
+    <button class="tab-btn" data-tab="levels">// LEVELS</button>
+    <button class="tab-btn" data-tab="archives">// ARCHIVES</button>
+    <button class="tab-btn" data-tab="footage">// FOUND FOOTAGE</button>
+    <button class="tab-btn" data-tab="livefeed">// LIVE FEED</button>
+  </div>
+
+  <!-- ═══ TAB: HOME ═══ -->
+  <div id="tab-home" class="section-content active">
+
+    <!-- HERO -->
+    <div id="heroSection">
+      <div id="heroBg"></div>
+      <div class="static-overlay"></div>
+      <div class="hscan"></div>
+      <div style="position:relative;z-index:5;text-align:center;padding:24px 16px;">
+        <div style="font-size:clamp(11px,2vw,16px);color:var(--dim-green);letter-spacing:0.4em;margin-bottom:16px;">
+          ▶ CLASSIFIED ACCESS — ASYNC RESEARCH FACILITY — 1989 ◀
+        </div>
+        <h1 class="hero-title">THE BACKROOMS</h1>
+        <div style="color:var(--dim-green);font-size:clamp(12px,2vw,20px);letter-spacing:0.3em;margin:8px 0 24px;">
+          THRESHOLD RESEARCH & ANOMALY CONTAINMENT
+        </div>
+        <div class="hero-sub">⚠ ACTIVE THRESHOLD EVENT ⚠</div>
+        <div style="margin:24px 0;">
+          <div style="color:var(--dim-green);font-size:14px;letter-spacing:0.2em;margin-bottom:8px;">NEXT NO-CLIP EVENT:</div>
+          <div class="countdown-box" id="countdown">00:00:00</div>
+        </div>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:24px;">
+          <button onclick="openFoundFootage()" style="background:transparent;border:2px solid var(--toxic);color:var(--toxic);font-family:'VT323',monospace;font-size:18px;padding:10px 24px;cursor:pointer;letter-spacing:0.2em;transition:all 0.3s;" onmouseover="this.style.boxShadow='0 0 20px rgba(0,255,0,0.5)'" onmouseout="this.style.boxShadow=''">
+            ▶ ACCESS FOUND FOOTAGE
+          </button>
+          <button onclick="switchTab('archives')" style="background:transparent;border:2px solid var(--acid);color:var(--acid);font-family:'VT323',monospace;font-size:18px;padding:10px 24px;cursor:pointer;letter-spacing:0.2em;transition:all 0.3s;" onmouseover="this.style.boxShadow='0 0 20px rgba(255,255,0,0.5)'" onmouseout="this.style.boxShadow=''">
+            ⊗ VIEW CLASSIFIED DOCS
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div style="background:#000;padding:16px;border-bottom:1px solid #0a1a0a;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;max-width:1200px;margin:0 auto;">
+        <div class="panel" style="text-align:center;">
+          <div style="font-size:13px;color:var(--dim-green);letter-spacing:0.2em;">LEVELS DOCUMENTED</div>
+          <div style="font-size:48px;color:var(--acid);text-shadow:0 0 15px var(--acid);">9∞+</div>
+        </div>
+        <div class="panel" style="text-align:center;">
+          <div style="font-size:13px;color:var(--dim-green);letter-spacing:0.2em;">ENTITIES CATALOGUED</div>
+          <div style="font-size:48px;color:var(--warn);text-shadow:0 0 15px var(--warn);animation:counterblink 2s infinite;">234</div>
+        </div>
+        <div class="panel" style="text-align:center;">
+          <div style="font-size:13px;color:var(--dim-green);letter-spacing:0.2em;">ACTIVE WANDERERS</div>
+          <div style="font-size:48px;color:var(--toxic);text-shadow:0 0 15px var(--toxic);" id="wandererCount">1,847</div>
+        </div>
+        <div class="panel panel-warn" style="text-align:center;">
+          <div style="font-size:13px;color:var(--warn);letter-spacing:0.2em;">THRESHOLD STABILITY</div>
+          <div style="font-size:48px;color:var(--warn);animation:blink 0.8s infinite;">12%</div>
+        </div>
+        <div class="panel" style="text-align:center;">
+          <div style="font-size:13px;color:var(--dim-green);letter-spacing:0.2em;">SIGNAL STRENGTH</div>
+          <div style="font-size:48px;color:var(--cyan);text-shadow:0 0 15px var(--cyan);" id="signalStrength">▌▌▌▌▌</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL 0 PREVIEW -->
+    <div style="background:#000;padding:24px 16px;max-width:1200px;margin:0 auto;">
+      <div class="panel" style="position:relative;overflow:hidden;">
+        <div class="corner-tl"></div><div class="corner-tr"></div><div class="corner-bl"></div><div class="corner-br"></div>
+        <div class="panel-title">PRIMARY ANOMALY — LEVEL 0 "THE HOTEL ROOMS"</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;">
+          <div>
+            <div style="font-size:clamp(13px,2vw,16px);color:var(--dim-green);line-height:1.8;font-family:'Share Tech Mono',monospace;">
+              <p>Area: <span class="glow-yellow">~600,000,000</span> sq mi (Est.)</p>
+              <p>Humidity: <span class="glow-red">∞</span> (Impossible reading)</p>
+              <p>Entities present: <span class="glow-red">CONFIRMED</span></p>
+              <p>Exit probability: <span style="color:var(--warn);">0.003%</span></p>
+              <p style="margin-top:12px;color:var(--acid);">Entry vector: <span class="redacted"></span></p>
+              <p>Classification: <span style="color:var(--warn);">EXTREME HAZARD</span></p>
+            </div>
+            <p style="margin-top:16px;font-size:clamp(12px,1.8vw,15px);color:#557755;line-height:1.7;font-family:'Share Tech Mono',monospace;">
+              If you're not careful and you no-clip out of reality in the wrong areas, you'll end up in the Backrooms. The smell of wet carpet, the madness of mono-yellow, and the buzz of fluorescent lights...
+            </p>
+            <p style="margin-top:8px;font-size:clamp(12px,1.8vw,15px);color:#557755;font-family:'Share Tech Mono',monospace;">
+              Survival resources estimated at <span class="glow-red">9–</span>12 months before psychological collapse.
+            </p>
+          </div>
+          <div style="position:relative;aspect-ratio:16/10;background:linear-gradient(135deg,#111200 0%,#1a1a00 25%,#0d0d00 50%,#1a1900 75%,#111100 100%);border:1px solid #2a2a00;overflow:hidden;animation:softflicker 3s infinite;">
+            <!-- Fake room grid effect -->
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 19.9%,rgba(255,255,100,0.04) 19.9%,rgba(255,255,100,0.04) 20%),repeating-linear-gradient(0deg,transparent,transparent 19.9%,rgba(255,255,100,0.04) 19.9%,rgba(255,255,100,0.04) 20%);"></div>
+            <div style="position:absolute;bottom:8px;left:8px;font-size:11px;color:rgba(180,180,0,0.4);letter-spacing:0.2em;">SECTOR 7G — FLUORESCENT WING</div>
+            <div style="position:absolute;top:8px;right:8px;font-size:11px;color:rgba(255,0,0,0.5);animation:blink 1s infinite;">REC ●</div>
+            <div class="static-overlay"></div>
+            <!-- Fake fluorescent light effect -->
+            <div style="position:absolute;top:0;left:20%;width:60%;height:3px;background:rgba(255,255,200,0.15);box-shadow:0 0 30px rgba(255,255,200,0.1);animation:pulse 2s infinite;"></div>
+            <div style="position:absolute;top:0;left:10%;width:80%;height:100%;background:linear-gradient(180deg,rgba(255,255,100,0.03) 0%,transparent 40%);animation:softflicker 4s infinite;"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:64px;opacity:0.15;color:var(--acid);">⬡</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT ACTIVITY -->
+      <div class="panel" style="margin-top:16px;">
+        <div class="panel-title">RECENT INCIDENT REPORTS</div>
+        <div id="recentActivity" style="font-family:'Share Tech Mono',monospace;font-size:clamp(11px,1.5vw,14px);color:var(--dim-green);line-height:2;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: LEVELS ═══ -->
+  <div id="tab-levels" class="section-content">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 16px;">
+      <div style="font-size:clamp(20px,4vw,36px);color:var(--acid);letter-spacing:0.2em;margin-bottom:4px;text-shadow:0 0 10px var(--acid);">LEVEL DOCUMENTATION DATABASE</div>
+      <div style="font-size:14px;color:var(--dim-green);letter-spacing:0.2em;margin-bottom:24px;font-family:'Share Tech Mono',monospace;">
+        [ASYNC-RF INTERNAL] — CLASSIFIED ACCESS ONLY — UNAUTHORIZED DISTRIBUTION PROHIBITED
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;" id="levelGrid">
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: ARCHIVES ═══ -->
+  <div id="tab-archives" class="section-content">
+    <div style="max-width:900px;margin:0 auto;padding:24px 16px;">
+      <div style="font-size:clamp(20px,4vw,36px);color:var(--acid);letter-spacing:0.2em;margin-bottom:24px;text-shadow:0 0 10px var(--acid);">CLASSIFIED ARCHIVE DOCUMENTS</div>
+
+      <div class="doc-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div style="color:var(--acid);font-size:22px;letter-spacing:0.15em;">MEMO — THRESHOLD STABILIZATION PROTOCOL</div>
+          <div class="stamp">TOP SECRET</div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim-green);line-height:1.9;">
+          <p>DATE: <span style="color:var(--acid);">OCTOBER 14, 1989</span> &nbsp;|&nbsp; FACILITY: ASYNC-RF SITE 7 &nbsp;|&nbsp; CLEARANCE: LEVEL 5+</p>
+          <p style="margin-top:12px;">TO: All Research Division Heads<br/>FROM: Director <span class="redacted"></span></p>
+          <p style="margin-top:12px;">
+            Following the incident during <span class="redacted"></span> test on <span class="redacted"></span>, the Threshold Stabilization Committee has convened an emergency session. The resonance spike measured at <span class="redacted"></span> Hz has exceeded all projected models by a factor of <span class="redacted"></span>.
+          </p>
+          <p style="margin-top:12px;">
+            Personnel assigned to <span class="redacted"></span> units in Sector <span class="redacted"></span> are to remain on-site until further notice. All non-essential communication channels are to be <span class="redacted"></span>. The <span class="redacted"></span> must not be made aware of the <span class="redacted"></span> event.
+          </p>
+          <p style="margin-top:12px;color:var(--warn);">
+            NOTE: Three (3) field researchers have failed to report following the 0300 sweep. <span class="redacted"></span> and <span class="redacted"></span> are presumed to have been <span class="redacted"></span>. Search teams are authorized to enter Level <span class="redacted"></span> at their own risk.
+          </p>
+          <p style="margin-top:12px;color:var(--dim-yellow);">
+            Appendix A: <span class="redacted"></span> [REMOVED BY ORDER OF <span class="redacted"></span>]
+          </p>
+        </div>
+      </div>
+
+      <div class="doc-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div style="color:var(--warn);font-size:22px;letter-spacing:0.15em;">INCIDENT REPORT — ENTITY CONTACT / CLASS <span class="redacted"></span></div>
+          <div class="stamp" style="border-color:var(--warn);color:var(--warn);">SENSITIVE</div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim-green);line-height:1.9;">
+          <p>DATE: <span style="color:var(--acid);">MARCH 2, 1989</span> &nbsp;|&nbsp; FIELD TEAM: DELTA-7</p>
+          <p style="margin-top:12px;">At approximately <span class="redacted"></span> hours, Field Researcher <span class="redacted"></span> reported audio contact with an unclassified entity in the Level 6 corridor system. The entity produced a sound described as "fluorescent lights but wrong." No visual confirmation was achieved.</p>
+          <p style="margin-top:12px;color:var(--warn);">At <span class="redacted"></span> hours, radio contact with <span class="redacted"></span> was lost. Recovery unit dispatched at 0600 found only: one (1) research notebook, pages <span class="redacted"></span> through <span class="redacted"></span> removed; one (1) cassette recorder, tape missing; one (1) <span class="redacted"></span>.</p>
+          <p style="margin-top:12px;color:var(--dim-yellow);">Entity designation assigned: <span class="redacted"></span>. Threat classification: <span style="color:var(--warn);animation:blink 0.5s infinite;">OMEGA</span>.</p>
+          <p style="margin-top:12px;">Field Lead recommendation: Level 6 access restricted to <span class="redacted"></span> teams only. All personnel entering must carry <span class="redacted"></span> and maintain radio contact every <span class="redacted"></span> minutes.</p>
+        </div>
+      </div>
+
+      <div class="doc-card">
+        <div style="color:var(--cyan);font-size:22px;letter-spacing:0.15em;margin-bottom:12px;">TECHNICAL REPORT — THRESHOLD RESONANCE ARRAY v7.3</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim-green);line-height:1.9;">
+          <p>Threshold Resonance Array Mark 7.3 consists of <span class="redacted"></span> primary emitters arranged in <span class="redacted"></span> configuration. Power requirements: <span class="redacted"></span> MW continuous. Estimated operational window before <span class="redacted"></span>: 72–96 hours.</p>
+          <p style="margin-top:12px;">WARNING: Array operation at above <span class="redacted"></span>% capacity will result in <span class="redacted"></span>. Personnel within <span class="redacted"></span> meters during peak emission are advised to wear <span class="redacted"></span> shielding. Exposure beyond <span class="redacted"></span> minutes may cause <span class="redacted"></span>, <span class="redacted"></span>, and in rare cases, <span class="redacted"></span>.</p>
+          <p style="margin-top:12px;color:var(--acid);">Current Array Status: <span style="color:var(--warn);animation:blink 0.5s infinite;">ACTIVE — 94% CAPACITY</span></p>
+          <p>Time to thermal failure: <span style="color:var(--warn);" id="thermalTimer">04:32:17</span></p>
+          <p style="margin-top:12px;color:#333;">SEE ALSO: Appendix <span class="redacted"></span>, <span class="redacted"></span>, and <span class="redacted"></span>.</p>
+        </div>
+      </div>
+
+      <div class="doc-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div style="color:var(--acid);font-size:22px;letter-spacing:0.15em;">PERSONAL LOG — RESEARCHER <span class="redacted"></span></div>
+          <div style="font-size:12px;color:#333;letter-spacing:0.2em;align-self:center;">RECOVERED FROM LEVEL 2 — AUTHENTICITY UNVERIFIED</div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim-green);line-height:1.9;">
+          <p style="color:var(--dim-yellow);">Day <span class="redacted"></span>:</p>
+          <p>The humming is constant now. I've stopped noticing it except when I wake up — for a second I think it's gone and then it comes back, louder somehow. Johnson <span class="redacted"></span> two days ago. Nobody talks about it.</p>
+          <p style="margin-top:10px;color:var(--dim-yellow);">Day <span class="redacted"></span>:</p>
+          <p>Found a room today that wasn't on any of our maps. The wallpaper was different. Almost orange. <span class="redacted"></span> says I imagined it. My measurements say otherwise. I took <span class="redacted"></span> photographs. I don't know where the camera is now.</p>
+          <p style="margin-top:10px;color:var(--warn);">Day <span class="redacted"></span>:</p>
+          <p>IT KNOWS WE ARE MAPPING IT. The corridors change. I can hear it <span class="redacted"></span> behind the walls. If anyone finds this: do not <span class="redacted"></span>. Whatever you do, do not look at <span class="redacted"></span>. Just keep moving. The exit is <span class="redacted"></span>.</p>
+          <p style="margin-top:10px;font-style:italic;color:#333;">[remaining pages water-damaged / illegible]</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: FOUND FOOTAGE (inline version) ═══ -->
+  <div id="tab-footage" class="section-content">
+    <div style="max-width:900px;margin:0 auto;padding:24px 16px;">
+      <div style="font-size:clamp(20px,4vw,36px);color:var(--acid);letter-spacing:0.2em;margin-bottom:8px;text-shadow:0 0 10px var(--acid);">FOUND FOOTAGE ARCHIVE</div>
+      <div style="font-size:14px;color:var(--warn);letter-spacing:0.2em;margin-bottom:24px;font-family:'Share Tech Mono',monospace;animation:blink 1s infinite;">
+        ⚠ VIEWER DISCRETION ADVISED — PSYCHOLOGICAL HAZARD RATING: SEVERE
+      </div>
+      <div style="text-align:center;margin-bottom:24px;">
+        <button onclick="openFoundFootage()" style="background:transparent;border:2px solid var(--warn);color:var(--warn);font-family:'VT323',monospace;font-size:22px;padding:12px 32px;cursor:pointer;letter-spacing:0.2em;animation:warnbreath 1.5s infinite;">
+          ▶ OPEN IMMERSIVE FOUND FOOTAGE VIEWER
+        </button>
+      </div>
+      <div class="panel">
+        <div class="panel-title">TAPE CATALOG</div>
+        <div id="tapeCatalogInline" style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim-green);line-height:2;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: LIVE FEED ═══ -->
+  <div id="tab-livefeed" class="section-content">
+    <div style="max-width:1100px;margin:0 auto;padding:24px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:clamp(20px,4vw,36px);color:var(--acid);letter-spacing:0.2em;text-shadow:0 0 10px var(--acid);">FACILITY TERMINAL — LIVE FEED</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="status-led"></div>
+          <span style="color:var(--toxic);font-size:14px;letter-spacing:0.2em;">STREAMING</span>
+        </div>
+      </div>
+      <div class="panel" style="padding:8px;font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim-green);margin-bottom:16px;line-height:1.6;">
+        <span style="color:var(--acid);">ASYNC-RF-SYS:</span> Connection established. Uptime: <span id="uptimeDisplay">00:00:00</span> &nbsp;|&nbsp; Packets: <span id="packetCount">0</span> &nbsp;|&nbsp; Buffer: <span style="color:var(--warn);">FULL</span>
+      </div>
+      <div id="liveFeedScroll">
+        <div class="hscan"></div>
+        <div id="liveFeedInner"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /mainUI -->
+
+<!-- ══════════════════ FOUND FOOTAGE MODAL ══════════════════ -->
+<div id="foundFootageModal">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(20,20,80,0.3) 0%,#000 70%);"></div>
+  <div style="position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px;">
+    <!-- Close -->
+    <div style="width:min(560px,92vw);display:flex;justify-content:space-between;align-items:center;">
+      <div style="color:var(--warn);font-family:'VT323',monospace;font-size:18px;letter-spacing:0.2em;animation:blink 0.5s infinite;">⚠ CLASSIFIED FOOTAGE</div>
+      <button onclick="closeFoundFootage()" style="background:transparent;border:1px solid #333;color:#555;font-family:'VT323',monospace;font-size:18px;padding:4px 12px;cursor:pointer;" onmouseover="this.style.borderColor='var(--warn)';this.style.color='var(--warn)'" onmouseout="this.style.borderColor='#333';this.style.color='#555'">✕ CLOSE</button>
+    </div>
+
+    <!-- TV -->
+    <div id="tvContainer">
+      <div id="tvBody">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-family:'VT323',monospace;font-size:14px;color:#333;letter-spacing:0.2em;">ASYNC RF-7 PLAYBACK UNIT</div>
+          <div style="display:flex;gap:6px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#1a0000;"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#001a00;" id="tvPowerLed"></div>
+          </div>
+        </div>
+        <div id="tvScreen">
+          <canvas id="staticCanvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;"></canvas>
+          <iframe id="youtubeFrame" frameborder="0" allowfullscreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            style="position:absolute;inset:0;width:100%;height:100%;z-index:2;display:none;"></iframe>
+          <div id="insertedTape" style="position:absolute;top:-40px;left:50%;transform:translateX(-50%);z-index:20;font-size:30px;">📼</div>
+          <div style="position:absolute;bottom:8px;left:8px;z-index:15;font-family:'VT323',monospace;font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:0.2em;" id="tapeTimeCode">-- : -- : --</div>
+          <div style="position:absolute;top:6px;right:6px;z-index:15;font-family:'VT323',monospace;font-size:12px;color:rgba(255,255,255,0.3);animation:blink 1.2s infinite;" id="tvRecBadge">⬛ STANDBY</div>
+        </div>
+        <div id="tvLabel">MODEL XR-2200 • PLAYBACK UNIT • DO NOT REMOVE</div>
+        <div id="tapeSlot"><div id="tapeIndicator"></div></div>
+      </div>
+    </div>
+
+    <!-- Tape Rack -->
+    <div class="vhs-rack">
+      <div id="tapeRack"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ENTITY WARNING ══════════════════ -->
+<div id="entityWarning">
+  <div class="corner-tl"></div><div class="corner-tr"></div><div class="corner-bl"></div><div class="corner-br"></div>
+  <div class="ew-title" id="ewTitle">⚠ ENTITY DETECTED</div>
+  <div class="ew-body" id="ewBody">UNKNOWN ENTITY PROXIMITY ALERT</div>
+  <div style="margin-top:10px;font-size:13px;color:#333;font-family:'Share Tech Mono',monospace;" id="ewSub">FIELD TEAM NOTIFIED — STAND BY</div>
+</div>
+
+<!-- ══════════════════ ADMIN PANEL ══════════════════ -->
+<div id="adminPanel">
+  <div id="adminContent">
+    <div class="corner-tl"></div><div class="corner-tr"></div><div class="corner-bl"></div><div class="corner-br"></div>
+    <div class="admin-title">⬡ ADMIN ACCESS — ASYNC RF ⬡</div>
+    <div style="text-align:center;color:var(--warn);font-size:14px;letter-spacing:0.2em;margin:8px 0 20px;font-family:'Share Tech Mono',monospace;">EASTER EGG UNLOCKED — FACILITY ROOT ACCESS</div>
+    <div class="admin-row"><span>THRESHOLD STATUS</span><span class="admin-val">OPEN — CRITICAL</span></div>
+    <div class="admin-row"><span>CURRENT DATE (FACILITY)</span><span class="admin-val">OCT 14 1989</span></div>
+    <div class="admin-row"><span>PERSONNEL CONFIRMED LOST</span><span class="admin-val" id="adminMissing">047</span></div>
+    <div class="admin-row"><span>ENTITY COUNT (CATALOGUED)</span><span class="admin-val">234</span></div>
+    <div class="admin-row"><span>ARRAY POWER LEVEL</span><span class="admin-val" style="color:var(--warn);animation:blink 0.5s infinite;">94%</span></div>
+    <div class="admin-row"><span>LEVEL COUNT (DOCUMENTED)</span><span class="admin-val">9∞+</span></div>
+    <div class="admin-row"><span>CLASSIFIED TAPES</span><span class="admin-val">12 OF <span class="redacted"></span></span></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;">
+      <button class="admin-btn" onclick="document.getElementById('adminPanel').classList.remove('open')">✕ CLOSE ACCESS</button>
+      <button class="admin-btn" onclick="triggerEntityWarning()">⚠ TRIGGER ENTITY ALERT</button>
+      <button class="admin-btn" onclick="startBootSequence()">⟳ REBOOT THRESHOLD</button>
+      <button class="admin-btn" style="color:var(--warn);border-color:#330000;" onclick="document.getElementById('adminPanel').classList.remove('open')">⊗ PURGE LOGS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ AUDIO ENGINE ══════════════════ -->
+<!-- All audio is synthesized via Web Audio API — no external files needed -->
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════
+// AUDIO ENGINE
+// ═══════════════════════════════════════════════
+let audioCtx = null;
+let radioOn = false;
+let radioChatterNode = null;
+let radioGainNode = null;
+let ambienceOn = false;
+let ambienceGain = null;
+let ambienceOsc = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSquelch(open) {
+  ensureAudio();
+  const noise = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.25, audioCtx.sampleRate);
+  const data = noise.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.8;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noise;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = open ? 2000 : 800;
+  filter.Q.value = 2;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(open ? 0.6 : 0.4, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+  src.stop(audioCtx.currentTime + 0.26);
+}
+
+// Synthesize radio chatter: morse-like tones + noise bursts + voice-like modulation
+function startRadioChatter(vol) {
+  ensureAudio();
+  if (radioChatterNode) stopRadioChatter();
+  radioGainNode = audioCtx.createGain();
+  radioGainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
+  radioGainNode.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 1.5);
+  radioGainNode.connect(audioCtx.destination);
+
+  // Background noise hiss
+  const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 10, audioCtx.sampleRate);
+  const nd = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1);
+  const noiseSrc = audioCtx.createBufferSource();
+  noiseSrc.buffer = noiseBuffer;
+  noiseSrc.loop = true;
+  const noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.value = 1500;
+  noiseFilter.Q.value = 0.5;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0.12;
+  noiseSrc.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(radioGainNode);
+  noiseSrc.start();
+  radioChatterNode = { noiseSrc, intervals: [] };
+
+  // Voice-like radio chatter via AM-modulated oscillator bursts
+  function scheduleChatter() {
+    if (!radioOn) return;
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    const carrier = audioCtx.createOscillator();
+    carrier.frequency.value = 1200 + Math.random() * 800;
+    carrier.type = 'sawtooth';
+    const modOsc = audioCtx.createOscillator();
+    modOsc.frequency.value = 80 + Math.random() * 180;
+    modOsc.type = 'sine';
+    const modGain = audioCtx.createGain();
+    modGain.gain.value = 0.5;
+    modOsc.connect(modGain);
+    const amGain = audioCtx.createGain();
+    amGain.gain.value = 0.001;
+    modGain.connect(amGain.gain);
+    carrier.connect(amGain);
+    const distortion = audioCtx.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; curve[i] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x)); }
+    distortion.curve = curve;
+    amGain.connect(distortion);
+    const bpf = audioCtx.createBiquadFilter();
+    bpf.type = 'bandpass';
+    bpf.frequency.value = 1000 + Math.random() * 1500;
+    bpf.Q.value = 1.5;
+    distortion.connect(bpf);
+    const segGain = audioCtx.createGain();
+    const duration = 0.3 + Math.random() * 1.5;
+    segGain.gain.setValueAtTime(0.001, now);
+    segGain.gain.linearRampToValueAtTime(0.18, now + 0.05);
+    segGain.gain.setValueAtTime(0.18, now + duration - 0.1);
+    segGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    bpf.connect(segGain);
+    segGain.connect(radioGainNode);
+    carrier.start(now);
+    modOsc.start(now);
+    carrier.stop(now + duration + 0.01);
+    modOsc.stop(now + duration + 0.01);
+    const nextDelay = (0.5 + Math.random() * 3.5) * 1000;
+    const id = setTimeout(scheduleChatter, (duration + nextDelay / 1000) * 1000);
+    if (radioChatterNode) radioChatterNode.intervals.push(id);
+  }
+  setTimeout(scheduleChatter, 200);
+}
+
+function stopRadioChatter() {
+  if (radioChatterNode) {
+    try { radioChatterNode.noiseSrc.stop(); } catch(e) {}
+    (radioChatterNode.intervals || []).forEach(clearTimeout);
+    radioChatterNode = null;
+  }
+  if (radioGainNode) {
+    radioGainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+    setTimeout(() => { try { radioGainNode.disconnect(); } catch(e) {} radioGainNode = null; }, 900);
+  }
+}
+
+function toggleRadio() {
+  ensureAudio();
+  radioOn = !radioOn;
+  const led = document.getElementById('transmitLed');
+  const status = document.getElementById('radioStatus');
+  const vol = parseFloat(document.getElementById('radioVol').value);
+  if (radioOn) {
+    playSquelch(true);
+    setTimeout(() => startRadioChatter(vol), 300);
+    led.classList.add('active');
+    status.textContent = 'TX';
+    status.style.color = 'var(--warn)';
+    document.getElementById('radioVol').style.display = 'inline-block';
+  } else {
+    playSquelch(false);
+    stopRadioChatter();
+    led.classList.remove('active');
+    status.textContent = 'OFF';
+    status.style.color = '#333';
+    document.getElementById('radioVol').style.display = 'none';
+  }
+}
+
+document.getElementById('radioWidget').addEventListener('click', toggleRadio);
+document.getElementById('radioVol').addEventListener('input', function(e) {
+  e.stopPropagation();
+  if (radioGainNode) radioGainNode.gain.linearRampToValueAtTime(parseFloat(this.value), audioCtx.currentTime + 0.1);
+});
+
+// Ambience: fluorescent hum (120Hz + harmonics)
+function toggleAmbience() {
+  ensureAudio();
+  ambienceOn = !ambienceOn;
+  const btn = document.getElementById('ambienceBtn');
+  if (ambienceOn) {
+    ambienceGain = audioCtx.createGain();
+    ambienceGain.gain.value = 0.04;
+    ambienceGain.connect(audioCtx.destination);
+    [120, 240, 360, 480].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq + (Math.random() - 0.5) * 2;
+      const g = audioCtx.createGain();
+      g.gain.value = 1 / (i + 1);
+      osc.connect(g);
+      g.connect(ambienceGain);
+      osc.start();
+    });
+    btn.classList.add('active');
+    btn.textContent = '◉ HUM';
+  } else {
+    if (ambienceGain) { ambienceGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1); }
+    btn.classList.remove('active');
+    btn.textContent = '◎ HUM';
+    ambienceOn = false;
+  }
+}
+document.getElementById('ambienceBtn').addEventListener('click', toggleAmbience);
+
+// ═══════════════════════════════════════════════
+// BOOT SEQUENCE
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('bootCanvas');
+const ctx2 = canvas.getContext('2d');
+let bootAnimId = null;
+let bootStartTime = 0;
+let bootPhase = 0;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const bootLines = [
+  {t:200,  text:'ASYNC RESEARCH FACILITY — THRESHOLD CONTROL SYSTEM v7.3',  color:'#00ff00'},
+  {t:600,  text:'COPYRIGHT (C) 1989 ASYNC CORP. ALL RIGHTS RESERVED.',       color:'#00aa00'},
+  {t:900,  text:'',                                                           color:'#00ff00'},
+  {t:1100, text:'INITIALIZING MEMORY CHECK...',                               color:'#00ff00'},
+  {t:1500, text:'  RAM: 640KB BASE — OK',                                     color:'#00aa00'},
+  {t:1800, text:'  EXTENDED: 8192KB — OK',                                   color:'#00aa00'},
+  {t:2100, text:'  SHADOW: 384KB — OK',                                      color:'#00aa00'},
+  {t:2400, text:'',                                                           color:''},
+  {t:2500, text:'LOADING BIOS EXTENSIONS...',                                color:'#00ff00'},
+  {t:2800, text:'  THRESHOLD RESONANCE MODULE v2.1 — LOADED',               color:'#00aa00'},
+  {t:3100, text:'  ENTITY DETECTION ARRAY — LOADED',                         color:'#00aa00'},
+  {t:3400, text:'  FIELD INTEGRITY MONITOR — LOADED',                        color:'#00aa00'},
+  {t:3700, text:'  [WARNING] ANOMALY MATRIX CHECKSUM FAIL',                  color:'#ffff00'},
+  {t:4000, text:'  [WARNING] SECTOR 7G UNRESPONSIVE',                        color:'#ffff00'},
+  {t:4300, text:'  [CRITICAL] 3 PERSONNEL TRANSPONDERS OFFLINE',             color:'#ff0000'},
+  {t:4600, text:'',                                                           color:''},
+  {t:4700, text:'STARTING THRESHOLD ARRAY INITIALIZATION...',               color:'#00ff00'},
+  {t:5100, text:'  EMITTER A — CALIBRATING... [████████░░] 80%',            color:'#00aa00'},
+  {t:5400, text:'  EMITTER A — [██████████] ONLINE',                        color:'#00ff00'},
+  {t:5700, text:'  EMITTER B — CALIBRATING... [███░░░░░░░] 30%',            color:'#00aa00'},
+  {t:6100, text:'  EMITTER B — CALIBRATING... [████████░░] 80%',            color:'#00aa00'},
+  {t:6400, text:'  EMITTER B — [██████████] ONLINE',                        color:'#00ff00'},
+  {t:6700, text:'  EMITTER C — FAULT DETECTED — BYPASSING...',              color:'#ffff00'},
+  {t:7000, text:'  EMITTER C — BYPASSED (94% CAPACITY)',                    color:'#ffff00'},
+  {t:7300, text:'',                                                           color:''},
+  {t:7400, text:'RESONANCE FIELD TUNING...',                                 color:'#00ff00'},
+  {t:7800, text:'  FREQUENCY: 440.000 Hz',                                   color:'#00aa00'},
+  {t:8100, text:'  PHASE LOCK: ACQUIRED',                                    color:'#00ff00'},
+  {t:8400, text:'  SPATIAL COHERENCE: 99.7%',                               color:'#00ff00'},
+  {t:8700, text:'  TEMPORAL DRIFT: 0.003 ms — ACCEPTABLE',                 color:'#00aa00'},
+  {t:9000, text:'',                                                           color:''},
+  {t:9100, text:'ENTITY DETECTION ARRAY STARTUP...',                        color:'#00ff00'},
+  {t:9500, text:'  PASSIVE SENSORS: ONLINE',                                color:'#00aa00'},
+  {t:9800, text:'  ACTIVE PING: TRANSMITTING...',                           color:'#00ff00'},
+  {t:10300,text:'  ACTIVE PING: RESPONSE DETECTED — 14 SIGNATURES',        color:'#ff0000'},
+  {t:10600,text:'  [ALERT] SIGNATURE COUNT EXCEEDS EXPECTED 0',             color:'#ff0000'},
+  {t:11000,text:'  [ALERT] PROXIMITY WARNING — SECTOR 4, 6, 9G, 12',       color:'#ff0000'},
+  {t:11300,text:'',                                                           color:''},
+  {t:11400,text:'THRESHOLD STATUS CHECK...',                                 color:'#00ff00'},
+  {t:11800,text:'  STRUCTURAL INTEGRITY: 12% — CRITICAL',                   color:'#ff0000'},
+  {t:12200,text:'  PERMEABILITY INDEX: 9.87 — EXTREME RISK',               color:'#ff0000'},
+  {t:12600,text:'  NO-CLIP PROBABILITY: 87.3% PER HOUR',                   color:'#ff0000'},
+  {t:13000,text:'',                                                           color:''},
+  {t:13100,text:'COMMUNICATIONS SYSTEM...',                                  color:'#00ff00'},
+  {t:13400,text:'  FIELD TEAMS: 3 ACTIVE / 2 NO-RESPONSE',                 color:'#ffff00'},
+  {t:13700,text:'  EXTERNAL COMMS: BLOCKED BY THRESHOLD INTERFERENCE',      color:'#ffff00'},
+  {t:14000,text:'  INTERNAL RELAY: DEGRADED',                               color:'#ffff00'},
+  {t:14300,text:'',                                                           color:''},
+  {t:14400,text:'ALL SYSTEMS NOMINAL (WITH EXCEPTIONS).',                   color:'#00ff00'},
+  {t:14700,text:'LAUNCHING FACILITY CONTROL INTERFACE...',                  color:'#00ff00'},
+  {t:15000,text:'',                                                           color:''},
+  {t:15100,text:'████████████████████████████████████████████████████████', color:'#00ff00'},
+  {t:15300,text:'██                                                        ██',color:'#00ff00'},
+  {t:15500,text:'██        THRESHOLD IS OPEN. PROCEED WITH CAUTION.       ██',color:'#ffff00'},
+  {t:15700,text:'██                                                        ██',color:'#00ff00'},
+  {t:15900,text:'████████████████████████████████████████████████████████', color:'#00ff00'},
+];
+
+let particles = [];
+let rings = [];
+let arcs = [];
+
+function initBootParticles() {
+  particles = [];
+  for (let i = 0; i < 120; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      size: Math.random() * 2.5 + 0.5,
+      alpha: Math.random(),
+      color: ['#00ff00','#00aa00','#ffff00','#00ffff','#ff0000'][Math.floor(Math.random()*5)]
+    });
+  }
+  rings = [];
+  for (let i = 0; i < 6; i++) {
+    rings.push({ r: 60 + i * 55, phase: Math.random() * Math.PI * 2, speed: 0.3 + Math.random() * 0.5, alpha: 0.1 + Math.random() * 0.2 });
+  }
+  arcs = [];
+}
+
+function drawBootFrame(elapsed) {
+  const W = canvas.width, H = canvas.height;
+  const progress = Math.min(elapsed / 17000, 1);
+
+  // Black base
+  ctx2.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx2.fillRect(0, 0, W, H);
+
+  // Phase-based effects
+  const phase = Math.floor(elapsed / 3000);
+
+  // Center X
+  const cx = W / 2, cy = H / 2;
+
+  // Pulsing magnetic rings
+  rings.forEach((ring, i) => {
+    ring.phase += ring.speed * 0.02;
+    const pulseR = ring.r + Math.sin(ring.phase) * 20 * progress;
+    const alpha = ring.alpha * progress * (0.5 + 0.5 * Math.sin(ring.phase * 2));
+    ctx2.beginPath();
+    ctx2.arc(cx, cy, pulseR, 0, Math.PI * 2);
+    ctx2.strokeStyle = `rgba(0,${120+Math.floor(135*Math.sin(ring.phase))},0,${alpha})`;
+    ctx2.lineWidth = 1 + Math.sin(ring.phase) * 1.5;
+    ctx2.stroke();
+    // Arc segments
+    for (let j = 0; j < 4; j++) {
+      const a1 = ring.phase + j * Math.PI / 2;
+      const a2 = a1 + 0.3 + 0.2 * Math.sin(ring.phase + j);
+      ctx2.beginPath();
+      ctx2.arc(cx, cy, pulseR + 8, a1, a2);
+      ctx2.strokeStyle = `rgba(0,255,100,${alpha * 2})`;
+      ctx2.lineWidth = 2;
+      ctx2.stroke();
+    }
+  });
+
+  // Electric arcs (phase 2+)
+  if (elapsed > 6000) {
+    const arcCount = Math.floor((elapsed - 6000) / 1000);
+    for (let i = 0; i < Math.min(arcCount, 8); i++) {
+      if (Math.random() < 0.15) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 150;
+        const x1 = cx + Math.cos(angle) * dist;
+        const y1 = cy + Math.sin(angle) * dist;
+        const x2 = cx + Math.cos(angle + (Math.random()-0.5)*0.5) * (dist + 40 + Math.random()*60);
+        const y2 = cy + Math.sin(angle + (Math.random()-0.5)*0.5) * (dist + 40 + Math.random()*60);
+        ctx2.beginPath();
+        ctx2.moveTo(x1, y1);
+        // Jagged arc
+        const steps = 6;
+        for (let s = 1; s < steps; s++) {
+          const t = s / steps;
+          const mx = x1 + (x2-x1)*t + (Math.random()-0.5)*20;
+          const my = y1 + (y2-y1)*t + (Math.random()-0.5)*20;
+          ctx2.lineTo(mx, my);
+        }
+        ctx2.lineTo(x2, y2);
+        ctx2.strokeStyle = `rgba(${Math.random()<0.5?0:100},${150+Math.floor(Math.random()*105)},255,${0.4+Math.random()*0.6})`;
+        ctx2.lineWidth = 1 + Math.random();
+        ctx2.stroke();
+      }
+    }
+  }
+
+  // Particles
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < 0) p.x = W;
+    if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H;
+    if (p.y > H) p.y = 0;
+    p.alpha = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(Date.now() / 400 + p.x));
+    ctx2.beginPath();
+    ctx2.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx2.fillStyle = p.color.replace(')', `,${p.alpha * progress})`).replace('rgb','rgba');
+    ctx2.fill();
+  });
+
+  // CRT static bursts
+  if (Math.random() < 0.03) {
+    const burstY = Math.random() * H;
+    const burstH = Math.random() * 40 + 5;
+    ctx2.fillStyle = `rgba(255,255,255,${Math.random() * 0.06})`;
+    ctx2.fillRect(0, burstY, W, burstH);
+  }
+
+  // Scanlines flicker
+  if (Math.random() < 0.1) {
+    for (let y = 0; y < H; y += 3) {
+      if (Math.random() < 0.02) {
+        ctx2.fillStyle = `rgba(0,255,0,0.03)`;
+        ctx2.fillRect(0, y, W, 1);
+      }
+    }
+  }
+
+  // Phase 3: color flash
+  if (elapsed > 12000 && Math.random() < 0.04) {
+    const colors = ['rgba(255,0,0,0.05)','rgba(0,255,255,0.04)','rgba(255,255,0,0.04)'];
+    ctx2.fillStyle = colors[Math.floor(Math.random()*colors.length)];
+    ctx2.fillRect(0, 0, W, H);
+  }
+
+  // Screen shake (phase 3)
+  if (elapsed > 14000) {
+    canvas.style.transform = `translate(${(Math.random()-0.5)*4}px,${(Math.random()-0.5)*3}px)`;
+  }
+
+  // Center glyph
+  const glyphAlpha = Math.min(1, elapsed / 3000) * (0.5 + 0.5 * Math.sin(Date.now()/300));
+  ctx2.save();
+  ctx2.translate(cx, cy - 80);
+  ctx2.globalAlpha = glyphAlpha * 0.4;
+  ctx2.font = `${Math.floor(60 + Math.sin(Date.now()/500)*10)}px VT323`;
+  ctx2.fillStyle = '#00ff00';
+  ctx2.textAlign = 'center';
+  ctx2.fillText('⬡', 0, 0);
+  ctx2.restore();
+}
+
+let bootLines_shown = 0;
+function startBootSequence() {
+  document.getElementById('bootScreen').style.display = 'flex';
+  document.getElementById('mainUI').classList.remove('visible');
+  document.getElementById('thresholdReveal').style.opacity = '0';
+  document.getElementById('thresholdReveal').style.pointerEvents = 'none';
+  const term = document.getElementById('bootTerminal');
+  term.innerHTML = '';
+  bootLines_shown = 0;
+  if (bootAnimId) cancelAnimationFrame(bootAnimId);
+  canvas.style.transform = '';
+  initBootParticles();
+  bootStartTime = Date.now();
+
+  function bootLoop() {
+    const elapsed = Date.now() - bootStartTime;
+    drawBootFrame(elapsed);
+    // Show terminal lines
+    while (bootLines_shown < bootLines.length && elapsed >= bootLines[bootLines_shown].t) {
+      const line = bootLines[bootLines_shown];
+      const div = document.createElement('div');
+      div.textContent = line.text;
+      div.style.color = line.color;
+      div.style.minHeight = '1.5em';
+      term.appendChild(div);
+      term.scrollTop = term.scrollHeight;
+      bootLines_shown++;
+    }
+    if (elapsed < 16000) {
+      bootAnimId = requestAnimationFrame(bootLoop);
+    } else {
+      // Reveal
+      showThresholdReveal();
+    }
+  }
+  bootAnimId = requestAnimationFrame(bootLoop);
+}
+
+function showThresholdReveal() {
+  const rev = document.getElementById('thresholdReveal');
+  rev.style.opacity = '1';
+  rev.style.pointerEvents = 'auto';
+  // Massive flash
+  canvas.style.filter = 'brightness(3)';
+  setTimeout(() => { canvas.style.filter = ''; }, 150);
+  // Clear with white
+  ctx2.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx2.fillRect(0, 0, canvas.width, canvas.height);
+  setTimeout(() => {
+    // Fade to main
+    setTimeout(() => {
+      document.getElementById('bootScreen').style.transition = 'opacity 1.5s';
+      document.getElementById('bootScreen').style.opacity = '0';
+      document.getElementById('mainUI').classList.add('visible');
+      setTimeout(() => {
+        document.getElementById('bootScreen').style.display = 'none';
+        document.getElementById('bootScreen').style.opacity = '1';
+        document.getElementById('bootScreen').style.transition = '';
+        canvas.style.transform = '';
+      }, 1600);
+    }, 1200);
+  }, 300);
+}
+
+document.getElementById('rebootBtn').addEventListener('click', startBootSequence);
+
+// ═══════════════════════════════════════════════
+// TAB SYSTEM
+// ═══════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.section-content').forEach(s => {
+    s.classList.toggle('active', s.id === 'tab-' + tab);
+  });
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ═══════════════════════════════════════════════
+// LEVELS DATA
+// ═══════════════════════════════════════════════
+const levels = [
+  {id:0, name:'The Hotel Rooms', desc:'Endless yellow wallpapered corridors. The smell of wet carpet and moist air. Fluorescent hum. No exits have ever been confirmed.', danger:'CRITICAL', entities:'Smilers, Skin-Stealers', size:'~600M sq mi'},
+  {id:1, name:'Pipe Dreams', desc:'Industrial piping and concrete. Occasional pools of water. Extreme temperature variance. Multiple entity classes confirmed.', danger:'HIGH', entities:'Dullers, Crawlers', size:'Unknown'},
+  {id:2, name:'The Party', desc:'Seemingly harmless party aesthetic. Streamers, balloons. Always nighttime. Entities remain hidden until dark.', danger:'MODERATE', entities:'Unknown - unconfirmed', size:'~30M sq mi'},
+  {id:3, name:'The Electrical Station', desc:'Abandoned electrical infrastructure. Severe shock risk. Power fluctuations disrupt all electronics within minutes.', danger:'CRITICAL', entities:'Wretches', size:'Unknown'},
+  {id:4, name:'The Howling Dark', desc:'Absolute darkness. No light source functions beyond 3 minutes. Audio distortions reported. Something moves in the dark.', danger:'EXTREME', entities:'CLASSIFIED', size:'CLASSIFIED'},
+  {id:5, name:'The Terror Hotel', desc:'Decayed hotel interior. Rooms rearrange. Elevators go to non-existent floors. Stairwells loop infinitely.', danger:'HIGH', entities:'Frowners', size:'~400K rooms'},
+  {id:6, name:'Lights Out', desc:'Fluorescent lights, but all broken. Extreme darkness interrupted by random strobe. Entities hunt by movement.', danger:'CRITICAL', entities:'CLASSIFIED', size:'CLASSIFIED'},
+  {id:7, name:'Thalassophobia', desc:'Infinite ocean, 2°C. No seabed detected at any depth. Nothing can survive here. Nothing human.', danger:'EXTREME', entities:'Deep Ones (Classified)', size:'∞'},
+  {id:'∞', name:'The True End', desc:'[DATA EXPUNGED BY ORDER OF DIRECTOR ████████]', danger:'CLASSIFIED', entities:'CLASSIFIED', size:'CLASSIFIED'},
+];
+const dangerClass = {CRITICAL:'danger-critical',HIGH:'danger-warn',MODERATE:'danger-safe',EXTREME:'danger-critical',CLASSIFIED:'danger-critical'};
+const grid = document.getElementById('levelGrid');
+levels.forEach(l => {
+  const div = document.createElement('div');
+  div.className = 'level-card';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div style="font-size:28px;color:var(--acid);text-shadow:0 0 8px var(--acid);">LEVEL ${l.id}</div>
+      <div class="danger-badge ${dangerClass[l.danger]||'danger-warn'}">${l.danger}</div>
+    </div>
+    <div style="font-size:20px;color:var(--toxic);margin-bottom:8px;letter-spacing:0.05em;">${l.name}</div>
+    <div style="font-size:13px;color:#557755;line-height:1.6;font-family:'Share Tech Mono',monospace;margin-bottom:12px;">${l.desc}</div>
+    <div style="font-size:12px;color:var(--dim-yellow);letter-spacing:0.1em;">ENTITIES: ${l.entities}</div>
+    <div style="font-size:12px;color:var(--dim-green);letter-spacing:0.1em;margin-top:4px;">ESTIMATED SIZE: ${l.size}</div>
+  `;
+  grid.appendChild(div);
+});
+
+// ═══════════════════════════════════════════════
+// VHS TAPES
+// ═══════════════════════════════════════════════
+const tapes = [
+  {id:'4iI4LMBYbJQ', label:'TAPE-001 // ENTITY ENCOUNTER — SECTOR 7G', date:'OCT 1989'},
+  {id:'3MSd9OaFfww', label:'TAPE-002 // FIELD TEAM DELTA — LAST RECORDING', date:'NOV 1989'},
+  {id:'nIw_WA2SHOU', label:'TAPE-003 // LEVEL 0 SURVEY FOOTAGE', date:'DEC 1988'},
+  {id:'Z5okBt0L5Vc', label:'TAPE-004 // THRESHOLD TEST #7 — CLASSIFIED', date:'JAN 1989'},
+  {id:'n3PZ3Kqfh4c', label:'TAPE-005 // ANOMALY DOCUMENTATION — LEVEL 2', date:'FEB 1989'},
+  {id:'HQ6BIBXkNbE', label:'TAPE-006 // PIPE DREAM SURVEY — PARTIAL', date:'MAR 1989'},
+];
+
+const rack = document.getElementById('tapeRack');
+const catalogInline = document.getElementById('tapeCatalogInline');
+tapes.forEach(t => {
+  // Rack (in modal)
+  const el = document.createElement('span');
+  el.className = 'vhs-tape';
+  el.innerHTML = `<span class="tape-icon">📼</span>${t.label}`;
+  el.dataset.id = t.id;
+  el.addEventListener('click', () => insertTape(t.id, el, t.label));
+  rack.appendChild(el);
+  // Catalog (in tab)
+  const row = document.createElement('div');
+  row.innerHTML = `<span style="color:var(--acid);">📼</span> <span style="color:var(--dim-yellow);">${t.label}</span> <span style="color:#333;">— ${t.date}</span>`;
+  catalogInline.appendChild(row);
+});
+
+let currentTapeEl = null;
+function insertTape(videoId, el, label) {
+  const frame = document.getElementById('youtubeFrame');
+  const inserted = document.getElementById('insertedTape');
+  const recBadge = document.getElementById('tvRecBadge');
+  const timecode = document.getElementById('tapeTimeCode');
+  // Reset all tapes
+  document.querySelectorAll('.vhs-tape').forEach(t => t.classList.remove('playing'));
+  if (currentTapeEl === el) {
+    // Eject
+    frame.src = '';
+    frame.style.display = 'none';
+    el.classList.remove('playing');
+    currentTapeEl = null;
+    inserted.style.display = 'none';
+    recBadge.textContent = '⬛ STANDBY';
+    timecode.textContent = '-- : -- : --';
+    return;
+  }
+  currentTapeEl = el;
+  el.classList.add('playing');
+  // Tape insert animation
+  inserted.style.display = 'block';
+  inserted.style.animation = 'none';
+  setTimeout(() => { inserted.style.animation = 'tapeinsert 0.8s ease-out forwards'; }, 10);
+  recBadge.textContent = '● PLAY';
+  recBadge.style.color = 'rgba(255,80,80,0.7)';
+  setTimeout(() => {
+    frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1`;
+    frame.style.display = 'block';
+    timecode.textContent = '00:00:00';
+    recBadge.textContent = '● REC';
+  }, 900);
+}
+
+// Static canvas for TV
+const staticCanvas = document.getElementById('staticCanvas');
+const sCtx = staticCanvas.getContext('2d');
+function drawStatic() {
+  if (!document.getElementById('foundFootageModal').classList.contains('open')) {
+    requestAnimationFrame(drawStatic);
+    return;
+  }
+  const w = staticCanvas.width, h = staticCanvas.height;
+  if (!w || !h) { requestAnimationFrame(drawStatic); return; }
+  const imageData = sCtx.createImageData(w, h);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const v = Math.floor(Math.random() * 200);
+    data[i] = v; data[i+1] = v; data[i+2] = v; data[i+3] = 255;
+  }
+  sCtx.putImageData(imageData, 0, 0);
+  // Horizontal bands
+  if (Math.random() < 0.15) {
+    sCtx.fillStyle = 'rgba(255,255,255,0.05)';
+    sCtx.fillRect(0, Math.random()*h, w, Math.random()*20+5);
+  }
+  const frame = document.getElementById('youtubeFrame');
+  if (frame.style.display !== 'none') {
+    sCtx.clearRect(0,0,w,h);
+  }
+  requestAnimationFrame(drawStatic);
+}
+
+function openFoundFootage() {
+  const modal = document.getElementById('foundFootageModal');
+  modal.classList.add('open');
+  const sc = document.getElementById('staticCanvas');
+  const tv = document.getElementById('tvScreen');
+  sc.width = tv.offsetWidth || 400;
+  sc.height = tv.offsetHeight || 300;
+  drawStatic();
+}
+function closeFoundFootage() {
+  document.getElementById('foundFootageModal').classList.remove('open');
+  document.getElementById('youtubeFrame').src = '';
+  document.getElementById('youtubeFrame').style.display = 'none';
+  if (currentTapeEl) { currentTapeEl.classList.remove('playing'); currentTapeEl = null; }
+  document.getElementById('insertedTape').style.display = 'none';
+  document.getElementById('tvRecBadge').textContent = '⬛ STANDBY';
+  document.getElementById('tvRecBadge').style.color = 'rgba(255,255,255,0.3)';
+}
+
+// ═══════════════════════════════════════════════
+// ENTITY WARNINGS
+// ═══════════════════════════════════════════════
+const entityWarnings = [
+  {title:'⚠ ENTITY DETECTED', body:'Smiler signature in Sector 7G. DELTA-4 advised to hold position. Do NOT make eye contact.', sub:'FIELD TEAM NOTIFIED — STAND BY'},
+  {title:'⚠ PROXIMITY ALERT', body:'Unknown entity — Level 6 corridor. Classification pending. All personnel evacuate Sector 12 immediately.', sub:'THREAT LEVEL: EXTREME'},
+  {title:'⚠ SKIN-STEALER SIGHTED', body:'Personnel in Level 0, Wing C: entity mimicking Dr. <span class="redacted"></span>. Do not trust visual identification. Use code phrase.', sub:'AUTHENTICATION PROTOCOL ACTIVE'},
+  {title:'⚠ AUDIO ANOMALY', body:'Crawlers reported in Level 1 pipes, Zones 4-9. Stay away from pipe openings. Do not bang on walls.', sub:'ACOUSTIC DAMPENING DEPLOYED'},
+  {title:'⚠ NO-CLIP EVENT IMMINENT', body:'Spatial coherence dropping in main corridor. All personnel — do NOT run. Walk calmly to nearest anchor point.', sub:'THRESHOLD STABILITY: 8% AND FALLING'},
+  {title:'⚠ SIGNAL LOSS', body:'Field team ECHO has gone dark. Last known position: Level 4, Sector █. Search party authorized.', sub:'COMMS DISRUPTED — SWITCHING TO BACKUP'},
+  {title:'⚠ WATCHER PRESENCE', body:'Motion sensors triggered in Research Wing B. Estimated 3 signatures. They know we can see them.', sub:'DO NOT ACKNOWLEDGE PRESENCE'},
+];
+
+function triggerEntityWarning() {
+  const w = document.getElementById('entityWarning');
+  const e = entityWarnings[Math.floor(Math.random() * entityWarnings.length)];
+  document.getElementById('ewTitle').textContent = e.title;
+  document.getElementById('ewBody').innerHTML = e.body;
+  document.getElementById('ewSub').textContent = e.sub;
+  w.style.display = 'block';
+  w.style.animation = 'none';
+  setTimeout(() => { w.style.animation = 'warningslide 8s ease-in-out forwards'; }, 10);
+  setTimeout(() => { w.style.display = 'none'; }, 8100);
+}
+
+// Random entity warnings every 25-60 seconds
+function scheduleEntityWarning() {
+  const delay = 25000 + Math.random() * 35000;
+  setTimeout(() => { triggerEntityWarning(); scheduleEntityWarning(); }, delay);
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN PANEL EASTER EGG
+// ═══════════════════════════════════════════════
+let logoClicks = 0, logoTimer = null;
+document.getElementById('asyncLogo').addEventListener('click', () => {
+  logoClicks++;
+  clearTimeout(logoTimer);
+  logoTimer = setTimeout(() => { logoClicks = 0; }, 2000);
+  if (logoClicks >= 5) {
+    document.getElementById('adminPanel').classList.add('open');
+    logoClicks = 0;
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.altKey && e.key === 'a') {
+    document.getElementById('adminPanel').classList.add('open');
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('adminPanel').classList.remove('open');
+    closeFoundFootage();
+  }
+});
+
+// ═══════════════════════════════════════════════
+// COUNTDOWN TIMER (next no-clip event)
+// ═══════════════════════════════════════════════
+let noClipTarget = Date.now() + (Math.random() * 3600 + 1800) * 1000;
+function updateCountdown() {
+  let diff = noClipTarget - Date.now();
+  if (diff <= 0) {
+    triggerEntityWarning();
+    noClipTarget = Date.now() + (Math.random() * 3600 + 1800) * 1000;
+    diff = noClipTarget - Date.now();
+  }
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const el = document.getElementById('countdown');
+  if (el) el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+// ═══════════════════════════════════════════════
+// PERSONNEL COUNTER
+// ═══════════════════════════════════════════════
+let missingCount = 47;
+function updateMissing() {
+  if (Math.random() < 0.08) {
+    missingCount += Math.floor(Math.random() * 3) + 1;
+    const el = document.getElementById('missingCount');
+    if (el) el.textContent = String(missingCount).padStart(3, '0');
+    const el2 = document.getElementById('adminMissing');
+    if (el2) el2.textContent = String(missingCount).padStart(3, '0');
+  }
+}
+setInterval(updateMissing, 5000);
+
+let wandererBase = 1847;
+function updateWanderers() {
+  wandererBase += Math.floor(Math.random() * 5) - 2;
+  if (wandererBase < 1800) wandererBase = 1800;
+  const el = document.getElementById('wandererCount');
+  if (el) el.textContent = wandererBase.toLocaleString();
+}
+setInterval(updateWanderers, 3000);
+
+// Signal strength flicker
+function updateSignal() {
+  const bars = ['▌','▌▌','▌▌▌','▌▌▌▌','▌▌▌▌▌'];
+  const n = Math.floor(Math.random() * 5);
+  const el = document.getElementById('signalStrength');
+  if (el) el.textContent = bars[n];
+}
+setInterval(updateSignal, 2000);
+
+// ═══════════════════════════════════════════════
+// THERMAL TIMER (archive)
+// ═══════════════════════════════════════════════
+let thermalSec = 4*3600 + 32*60 + 17;
+function updateThermal() {
+  thermalSec = Math.max(0, thermalSec - 1);
+  const h = Math.floor(thermalSec/3600);
+  const m = Math.floor((thermalSec%3600)/60);
+  const s = thermalSec%60;
+  const el = document.getElementById('thermalTimer');
+  if (el) el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+setInterval(updateThermal, 1000);
+
+// ═══════════════════════════════════════════════
+// LIVE FEED LOGS
+// ═══════════════════════════════════════════════
+const logTemplates = [
+  {c:'log',t:'[SYS] Heartbeat packet from FIELD-UNIT-{N} acknowledged.'},
+  {c:'warn',t:'[WARN] Threshold coherence drop detected in Sector {S}. Monitoring.'},
+  {c:'log',t:'[NET] Relay node {N} ping: {P}ms. Status: NOMINAL'},
+  {c:'red',t:'[ALERT] ██ ENTITY PROXIMITY ██ — Level {L}, Zone {Z}'},
+  {c:'log',t:'[SYS] Memory dump scheduled for 03:00. Buffer at {P}%.'},
+  {c:'yellow',t:'[COMMS] Field team {T} reports unusual audio phenomenon. Tape running.'},
+  {c:'cyan',t:'[DATA] Resonance reading: {P} Hz — within acceptable range.'},
+  {c:'log',t:'[SYS] Automated door lock cycle complete. {N} doors secured.'},
+  {c:'warn',t:'[WARN] Camera feed lost — Sector {S}, camera {N}.'},
+  {c:'red',t:'[ALERT] Personnel transponder offline — ID:{N}. Last position: Level {L}'},
+  {c:'log',t:'[LOG] Threshold integrity report filed. Classification: LEVEL 4 EYES ONLY.'},
+  {c:'cyan',t:'[COMMS] Patching field comms through backup relay...'},
+  {c:'yellow',t:'[WARN] Temporal drift detected: +{P}ms. Calibrating.'},
+  {c:'log',t:'[SYS] Sector {S} climate control nominal. Humidity: {P}%.'},
+  {c:'red',t:'[ALERT] ██ NO-CLIP EVENT DETECTED ██ — Grid {G}'},
+  {c:'warn',t:'[COMMS] Field team {T} requests extraction. ETA unknown.'},
+  {c:'log',t:'[SYS] {N} processes running. CPU load: {P}%.'},
+  {c:'yellow',t:'[DATA] Anomalous energy reading in Level {L} — investigating.'},
+  {c:'log',t:'[NET] Routing table updated. {N} hops to backup node.'},
+  {c:'cyan',t:'[COMMS] Research team ALPHA: "The walls moved again. Documenting."'},
+  {c:'red',t:'[CRITICAL] Power fluctuation in Array Sector {S}. Emergency rerouting.'},
+  {c:'log',t:'[SYS] Log archive compressed. {N} entries stored.'},
+  {c:'warn',t:'[DATA] Entity signature — new classification pending. Designation: E-{N}'},
+  {c:'log',t:'[SYS] Uptime: {U}. All primary systems operational.'},
+  {c:'yellow',t:'[COMMS] Dr. ████████ reports: "We should not be mapping this. Something is watching the map."'},
+  {c:'red',t:'[ALERT] ██ SKIN-STEALER CONTACT REPORTED ██ — Level 0, Wing C'},
+  {c:'log',t:'[SYS] Backup generator test complete. Runtime: {P} minutes.'},
+  {c:'cyan',t:'[DATA] Threshold field snapshot saved to archive.'},
+];
+
+const sectors = ['1A','2B','3C','4D','5E','6F','7G','8H','9I','12K'];
+const teams = ['ALPHA','BETA','GAMMA','DELTA','ECHO','ZETA'];
+function rndLog() {
+  const t = logTemplates[Math.floor(Math.random()*logTemplates.length)];
+  return {
+    c: t.c,
+    text: t.t
+      .replace(/{N}/g, Math.floor(Math.random()*9999).toString().padStart(4,'0'))
+      .replace(/{S}/g, sectors[Math.floor(Math.random()*sectors.length)])
+      .replace(/{P}/g, (Math.random()*100).toFixed(1))
+      .replace(/{L}/g, Math.floor(Math.random()*8).toString())
+      .replace(/{Z}/g, Math.floor(Math.random()*20).toString())
+      .replace(/{T}/g, teams[Math.floor(Math.random()*teams.length)])
+      .replace(/{G}/g, Math.floor(Math.random()*100).toString().padStart(3,'0'))
+      .replace(/{U}/g, formatUptime(Math.floor(Math.random()*86400)))
+  };
+}
+
+function formatUptime(s) {
+  return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+const liveFeedInner = document.getElementById('liveFeedInner');
+// Pre-fill with ~200 lines
+for (let i = 0; i < 200; i++) {
+  const d = document.createElement('div');
+  const ts = new Date(Date.now() - (200-i)*4000);
+  const log = rndLog();
+  d.className = `log-line ${log.c==='log'?'':log.c}`;
+  d.textContent = `[${ts.toLocaleTimeString('en-US',{hour12:false})}] ${log.text}`;
+  liveFeedInner.appendChild(d);
+}
+// Duplicate for seamless loop
+const clone = liveFeedInner.cloneNode(true);
+document.getElementById('liveFeedScroll').appendChild(clone);
+
+// Add new log lines periodically
+setInterval(() => {
+  if (document.getElementById('tab-livefeed').classList.contains('active')) {
+    const log = rndLog();
+    const d = document.createElement('div');
+    d.className = `log-line ${log.c==='log'?'':log.c}`;
+    d.textContent = `[${new Date().toLocaleTimeString('en-US',{hour12:false})}] ${log.text}`;
+    liveFeedInner.insertBefore(d, liveFeedInner.firstChild);
+    // Keep max lines
+    while (liveFeedInner.children.length > 300) liveFeedInner.removeChild(liveFeedInner.lastChild);
+  }
+}, 2500);
+
+// Uptime display
+let startTime = Date.now();
+let packetCount = 0;
+setInterval(() => {
+  const upEl = document.getElementById('uptimeDisplay');
+  const pkEl = document.getElementById('packetCount');
+  if (upEl) upEl.textContent = formatUptime(Math.floor((Date.now()-startTime)/1000));
+  packetCount += Math.floor(Math.random()*20+5);
+  if (pkEl) pkEl.textContent = packetCount.toLocaleString();
+}, 1000);
+
+// ═══════════════════════════════════════════════
+// RECENT ACTIVITY (HOME)
+// ═══════════════════════════════════════════════
+const recentActs = [
+  '[OCT 14 03:47] Field team DELTA-7 failed to check in. Search authorized.',
+  '[OCT 14 02:31] Entity E-0047 reclassified from MODERATE to EXTREME threat.',
+  '[OCT 14 01:15] Level 0 Sector 7G door 14C found open. No cause determined.',
+  '[OCT 13 23:59] Researcher ████ Personal Log found in Level 2. Contents: CLASSIFIED.',
+  '[OCT 13 22:14] Threshold integrity reading: 12%. Emergency protocols standing by.',
+  '[OCT 13 20:43] New entity signature detected. Designation pending. Avoid Level 4.',
+  '[OCT 13 19:08] Skin-Stealer incident confirmed — personnel count discrepancy noted.',
+  '[OCT 13 17:30] Resonance array recalibrated. Capacity held at 94% (emitter C fault).',
+];
+const actContainer = document.getElementById('recentActivity');
+recentActs.forEach(a => {
+  const d = document.createElement('div');
+  d.textContent = a;
+  d.style.color = a.includes('EXTREME')||a.includes('CLASSIFIED')||a.includes('Emergency')||a.includes('Skin-Stealer') ? 'var(--warn)' : '#557755';
+  actContainer.appendChild(d);
+});
+
+// ═══════════════════════════════════════════════
+// PARALLAX on hero
+// ═══════════════════════════════════════════════
+document.addEventListener('mousemove', e => {
+  const bg = document.getElementById('heroBg');
+  if (!bg) return;
+  const mx = (e.clientX / window.innerWidth - 0.5) * 20;
+  const my = (e.clientY / window.innerHeight - 0.5) * 20;
+  bg.style.transform = `translate(${mx}px,${my}px) scale(1.05)`;
+});
+
+// ═══════════════════════════════════════════════
+// BOOT ON LOAD
+// ═══════════════════════════════════════════════
+window.addEventListener('load', () => {
+  initBootParticles();
+  startBootSequence();
+  scheduleEntityWarning();
+});
+</script>
+</body>
+</html>
