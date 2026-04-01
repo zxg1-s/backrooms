@@ -1,0 +1,2526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASYNC FACILITY — CLASSIFIED TERMINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --acid: #ffff00;
+    --green: #00ff00;
+    --red: #ff0000;
+    --cyan: #00ffff;
+    --bg: #000000;
+    --dim-green: #003300;
+    --dim-yellow: #333300;
+    --phosphor: rgba(0,255,0,0.03);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html, body {
+    background: #000;
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── CRT OVERLAY ── */
+  #crt-overlay {
+    position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: multiply;
+  }
+
+  #crt-vignette {
+    position: fixed; inset: 0; z-index: 9997; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.92) 100%);
+  }
+
+  #crt-flicker {
+    position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+    animation: crtFlicker 0.12s infinite;
+    opacity: 0;
+  }
+
+  @keyframes crtFlicker {
+    0%{opacity:0} 92%{opacity:0} 93%{opacity:0.04} 94%{opacity:0}
+    96%{opacity:0.02} 97%{opacity:0} 99%{opacity:0.06} 100%{opacity:0}
+  }
+
+  /* RGB SPLIT */
+  .rgb-split {
+    position:relative;
+  }
+  .rgb-split::before, .rgb-split::after {
+    content:attr(data-text);
+    position:absolute; top:0; left:0; width:100%; height:100%;
+  }
+  .rgb-split::before { color:#f00; left:2px; opacity:0.5; animation: rgbShiftR 3s infinite; }
+  .rgb-split::after  { color:#0ff; left:-2px; opacity:0.5; animation: rgbShiftC 3s infinite; }
+  @keyframes rgbShiftR { 0%,100%{transform:translateX(2px)} 50%{transform:translateX(-1px)} }
+  @keyframes rgbShiftC { 0%,100%{transform:translateX(-2px)} 50%{transform:translateX(1px)} }
+
+  /* PHOSPHOR GLOW TEXT */
+  .glow-green { text-shadow: 0 0 4px #0f0, 0 0 10px #0f0, 0 0 20px #0f0; }
+  .glow-yellow { text-shadow: 0 0 4px #ff0, 0 0 10px #ff0, 0 0 20px #ff0; }
+  .glow-red { text-shadow: 0 0 4px #f00, 0 0 10px #f00, 0 0 20px #f00; }
+  .glow-cyan { text-shadow: 0 0 4px #0ff, 0 0 10px #0ff, 0 0 20px #0ff; }
+
+  /* BREATHING BORDERS */
+  .border-breathe {
+    animation: borderBreathe 2s ease-in-out infinite;
+  }
+  @keyframes borderBreathe {
+    0%,100%{border-color:rgba(0,255,0,0.4);box-shadow:0 0 6px rgba(0,255,0,0.2);}
+    50%{border-color:rgba(0,255,0,0.9);box-shadow:0 0 20px rgba(0,255,0,0.6);}
+  }
+
+  .border-breathe-yellow {
+    animation: borderBreatheY 2.5s ease-in-out infinite;
+  }
+  @keyframes borderBreatheY {
+    0%,100%{border-color:rgba(255,255,0,0.3);box-shadow:0 0 6px rgba(255,255,0,0.1);}
+    50%{border-color:rgba(255,255,0,0.9);box-shadow:0 0 24px rgba(255,255,0,0.5);}
+  }
+
+  .border-breathe-red {
+    animation: borderBreatheR 1.8s ease-in-out infinite;
+  }
+  @keyframes borderBreatheR {
+    0%,100%{border-color:rgba(255,0,0,0.4);box-shadow:0 0 6px rgba(255,0,0,0.2);}
+    50%{border-color:rgba(255,0,0,1);box-shadow:0 0 24px rgba(255,0,0,0.8);}
+  }
+
+  /* SCANLINE WIPE */
+  .scanline-wipe {
+    position:relative; overflow:hidden;
+  }
+  .scanline-wipe::after {
+    content:'';
+    position:absolute; left:0; right:0; height:40px;
+    background: linear-gradient(transparent, rgba(0,255,0,0.05), transparent);
+    animation: scanlineWipe 4s linear infinite;
+    top:-40px;
+  }
+  @keyframes scanlineWipe { to { top:110%; } }
+
+  /* BOOT SCREEN */
+  #boot-screen {
+    position: fixed; inset: 0; z-index: 10000;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  #boot-canvas { position:absolute; inset:0; }
+
+  #boot-terminal {
+    position:relative; z-index:2;
+    width: min(860px, 95vw);
+    max-height: 55vh;
+    overflow: hidden;
+    font-family:'VT323',monospace;
+    font-size: clamp(13px,2vw,17px);
+    color: #0f0;
+    text-shadow: 0 0 6px #0f0;
+    padding: 0 8px;
+  }
+
+  #boot-logo {
+    position:relative; z-index:2;
+    text-align:center;
+    margin-bottom: 20px;
+    opacity:0;
+    transition: opacity 0.5s;
+  }
+
+  #boot-big-text {
+    position:absolute; z-index:3;
+    inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size: clamp(32px, 6vw, 80px);
+    font-family:'VT323',monospace;
+    letter-spacing:8px;
+    opacity:0;
+    transition:opacity 0.3s;
+    text-align:center;
+    padding:20px;
+  }
+
+  /* MAIN LAYOUT */
+  #main-ui {
+    display:none;
+    min-height:100vh;
+  }
+
+  /* TOP BAR */
+  #topbar {
+    position: sticky; top:0; z-index:1000;
+    background: rgba(0,0,0,0.97);
+    border-bottom: 1px solid #0f0;
+    padding: 6px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px;
+    backdrop-filter:blur(4px);
+  }
+
+  .topbar-blink { animation: tbBlink 1s step-end infinite; }
+  @keyframes tbBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* TABS */
+  .tab-btn {
+    background:transparent;
+    border:1px solid rgba(0,255,0,0.3);
+    color:#0f0;
+    font-family:'VT323',monospace;
+    font-size:18px;
+    padding:4px 14px;
+    cursor:pointer;
+    letter-spacing:1px;
+    transition:all 0.2s;
+  }
+  .tab-btn:hover, .tab-btn.active {
+    background:rgba(0,255,0,0.15);
+    border-color:#0f0;
+    text-shadow:0 0 8px #0f0;
+    box-shadow:0 0 12px rgba(0,255,0,0.3);
+  }
+  .tab-btn.active { color:#ff0; border-color:#ff0; text-shadow:0 0 8px #ff0; }
+
+  /* TAB PANELS */
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* HERO */
+  #hero {
+    min-height:85vh;
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px 20px;
+    overflow:hidden;
+    border-bottom:1px solid rgba(0,255,0,0.2);
+  }
+
+  #hero-parallax-bg {
+    position:absolute; inset:0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,40,0,0.5) 0%, rgba(0,0,0,1) 70%);
+  }
+
+  #hero-canvas { position:absolute; inset:0; opacity:0.6; }
+
+  /* LEVEL CARDS */
+  .level-card {
+    background: rgba(0,10,0,0.9);
+    border:1px solid rgba(0,255,0,0.3);
+    padding:16px;
+    cursor:pointer;
+    transition:all 0.3s;
+    position:relative;
+    overflow:hidden;
+  }
+  .level-card:hover {
+    border-color:#0f0;
+    background:rgba(0,30,0,0.9);
+    box-shadow:0 0 20px rgba(0,255,0,0.3);
+    transform:translateY(-2px);
+  }
+  .level-card::before {
+    content:'';
+    position:absolute; top:0; left:-100%; width:100%; height:1px;
+    background:linear-gradient(90deg,transparent,#0f0,transparent);
+    animation:cardSweep 4s linear infinite;
+  }
+  @keyframes cardSweep { to{left:200%;} }
+
+  .danger-bar {
+    height:6px; background:rgba(0,255,0,0.1); margin-top:8px; position:relative;
+  }
+  .danger-fill {
+    height:100%; transition:width 1s ease;
+    position:relative;
+  }
+
+  /* VHS MODAL */
+  #found-footage-modal {
+    position:fixed; inset:0; z-index:5000;
+    background:rgba(0,0,0,0.96);
+    display:none; align-items:center; justify-content:center;
+    flex-direction:row; gap:24px;
+    padding:20px;
+  }
+  #found-footage-modal.open { display:flex; }
+
+  #tv-container {
+    position:relative;
+    width:min(480px,90vw);
+    flex-shrink:0;
+  }
+
+  #tv-frame {
+    width:100%;
+    background: linear-gradient(145deg,#1a1a1a,#0a0a0a);
+    border-radius:16px;
+    padding:24px 24px 40px;
+    box-shadow:
+      0 0 0 4px #222,
+      0 0 0 8px #111,
+      0 0 60px rgba(0,255,0,0.1),
+      inset 0 0 30px rgba(0,0,0,0.8);
+    position:relative;
+  }
+
+  #tv-screen-wrap {
+    position:relative;
+    background:#000;
+    border-radius:6px;
+    overflow:hidden;
+    aspect-ratio:4/3;
+    box-shadow:inset 0 0 20px rgba(0,0,0,0.9), 0 0 30px rgba(0,255,0,0.15);
+  }
+
+  #tv-iframe {
+    width:100%; height:100%;
+    display:none;
+    border:none;
+  }
+
+  #tv-static-canvas {
+    position:absolute; inset:0; width:100%; height:100%;
+  }
+
+  #tv-insert-zone {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer;
+    z-index:2;
+  }
+
+  #vhs-tape-anim {
+    position:absolute;
+    width:160px; height:90px;
+    background:linear-gradient(135deg,#1a1a1a,#2d2d2d);
+    border:2px solid #444;
+    border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    transform:translateY(-200px);
+    transition:transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+    box-shadow:0 4px 20px rgba(0,0,0,0.8);
+    z-index:3;
+  }
+  #vhs-tape-anim.inserting { transform:translateY(0px); }
+  #vhs-tape-anim.inserted { transform:translateY(200px); transition:transform 0.4s ease-in; }
+
+  #vhs-rack {
+    flex:1; max-width:260px; min-width:200px;
+    max-height:min(560px,80vh);
+    overflow-y:auto;
+    background:rgba(5,5,5,0.9);
+    border:1px solid rgba(0,255,0,0.2);
+    padding:12px;
+  }
+  #vhs-rack::-webkit-scrollbar { width:4px; }
+  #vhs-rack::-webkit-scrollbar-thumb { background:#0f0; }
+
+  .vhs-tape {
+    background:linear-gradient(135deg,#1c1c1c,#2a2a2a);
+    border:1px solid rgba(255,255,0,0.2);
+    padding:10px 12px;
+    margin-bottom:8px;
+    cursor:pointer;
+    transition:all 0.2s;
+    position:relative;
+    overflow:hidden;
+  }
+  .vhs-tape::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--green);
+  }
+  .vhs-tape:hover {
+    border-color:#ff0;
+    box-shadow:0 0 12px rgba(255,255,0,0.2);
+    transform:translateX(4px);
+  }
+  .vhs-tape.playing::before { background:#ff0; animation:tapeBlink 0.5s step-end infinite; }
+  @keyframes tapeBlink { 50%{opacity:0;} }
+
+  /* ADMIN PANEL */
+  #admin-panel {
+    position:fixed; inset:0; z-index:8000;
+    background:rgba(0,0,0,0.98);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px;
+    border:2px solid #f00;
+    box-shadow:0 0 60px rgba(255,0,0,0.3);
+  }
+  #admin-panel.open { display:flex; }
+
+  /* ENTITY WARNING */
+  #entity-warning {
+    position:fixed; z-index:7000;
+    background:rgba(0,0,0,0.97);
+    border:2px solid #f00;
+    padding:20px 28px;
+    font-family:'VT323',monospace;
+    color:#f00;
+    text-shadow:0 0 10px #f00;
+    box-shadow:0 0 40px rgba(255,0,0,0.5);
+    display:none;
+    max-width:400px;
+    animation:entityShake 0.1s infinite;
+  }
+  @keyframes entityShake {
+    0%{transform:translate(0,0)} 25%{transform:translate(-1px,1px)}
+    50%{transform:translate(1px,-1px)} 75%{transform:translate(-1px,-1px)}
+    100%{transform:translate(1px,1px)}
+  }
+  #entity-warning.show { display:block; }
+
+  /* RADIO */
+  #radio-widget {
+    display:flex; align-items:center; gap:8px;
+    background:rgba(0,20,0,0.8);
+    border:1px solid rgba(0,255,0,0.4);
+    padding:4px 10px;
+    border-radius:2px;
+    position:relative;
+  }
+
+  #radio-btn {
+    background:transparent; border:none; cursor:pointer;
+    font-size:20px; padding:0;
+    color:#0f0;
+    text-shadow:0 0 6px #0f0;
+    transition:all 0.2s;
+    font-family:'VT323',monospace;
+    letter-spacing:1px;
+  }
+
+  #transmit-led {
+    width:8px; height:8px; border-radius:50%;
+    background:#f00;
+    display:none;
+    box-shadow:0 0 8px #f00;
+    animation:ledBlink 0.4s step-end infinite;
+  }
+  @keyframes ledBlink { 50%{opacity:0;} }
+  #transmit-led.on { display:block; }
+
+  #radio-vol { width:50px; accent-color:#0f0; cursor:pointer; }
+
+  /* TERMINAL LOGS */
+  #live-feed-log {
+    font-family:'VT323',monospace;
+    font-size:15px;
+    color:#0f0;
+    line-height:1.6;
+    height:500px;
+    overflow-y:auto;
+    padding:12px;
+    background:rgba(0,5,0,0.95);
+    border:1px solid rgba(0,255,0,0.2);
+  }
+  #live-feed-log::-webkit-scrollbar { width:4px; }
+  #live-feed-log::-webkit-scrollbar-thumb { background:#0f0; }
+
+  .log-line { animation:logAppear 0.1s ease; }
+  @keyframes logAppear { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:none} }
+
+  /* COUNTDOWN */
+  #countdown { font-size:clamp(28px,5vw,60px); letter-spacing:4px; }
+
+  /* PERSONNEL COUNTER */
+  #personnel-count { font-size:clamp(40px,8vw,100px); }
+
+  /* REDACTED TEXT */
+  .redacted {
+    background:#0f0; color:#0f0;
+    user-select:none;
+    cursor:default;
+    transition:all 0.3s;
+  }
+  .redacted:hover { background:transparent; color:#f00; }
+
+  /* REBOOT BTN */
+  #reboot-btn {
+    background:transparent;
+    border:1px solid #f00;
+    color:#f00;
+    font-family:'VT323',monospace;
+    font-size:16px;
+    padding:4px 12px;
+    cursor:pointer;
+    text-shadow:0 0 6px #f00;
+    transition:all 0.2s;
+    letter-spacing:1px;
+  }
+  #reboot-btn:hover {
+    background:rgba(255,0,0,0.15);
+    box-shadow:0 0 16px rgba(255,0,0,0.4);
+  }
+
+  /* STATIC BURST */
+  #static-burst {
+    position:fixed; inset:0; z-index:6000; pointer-events:none;
+    background:transparent; display:none;
+  }
+
+  /* SCROLLABLE SECTIONS */
+  .section-container {
+    max-width:1400px;
+    margin:0 auto;
+    padding:24px 16px 60px;
+  }
+
+  /* ARCHIVE DOCS */
+  .archive-doc {
+    background:rgba(0,8,0,0.95);
+    border:1px solid rgba(0,255,0,0.2);
+    padding:20px;
+    margin-bottom:20px;
+    position:relative;
+    font-size:15px;
+    line-height:1.7;
+  }
+  .archive-doc::before {
+    content:'CLASSIFIED';
+    position:absolute; top:8px; right:12px;
+    color:rgba(255,0,0,0.4);
+    font-size:11px;
+    letter-spacing:3px;
+  }
+  .stamp {
+    display:inline-block;
+    border:2px solid rgba(255,0,0,0.6);
+    color:rgba(255,0,0,0.6);
+    padding:2px 10px;
+    font-size:20px;
+    letter-spacing:4px;
+    transform:rotate(-4deg);
+    margin-bottom:10px;
+  }
+
+  /* FLUORESCENT HUM toggle */
+  #hum-btn {
+    background:transparent;
+    border:1px solid rgba(0,255,255,0.4);
+    color:#0ff;
+    font-family:'VT323',monospace;
+    font-size:14px;
+    padding:3px 8px;
+    cursor:pointer;
+    letter-spacing:1px;
+    transition:all 0.2s;
+  }
+  #hum-btn:hover, #hum-btn.on {
+    background:rgba(0,255,255,0.1);
+    border-color:#0ff;
+    box-shadow:0 0 10px rgba(0,255,255,0.3);
+  }
+
+  /* STATS ROW */
+  .stat-box {
+    background:rgba(0,8,0,0.9);
+    border:1px solid rgba(0,255,0,0.25);
+    padding:16px;
+    text-align:center;
+    flex:1;
+    min-width:140px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* TEAR EFFECT */
+  @keyframes tear {
+    0%,95%,100%{clip-path:none; transform:none;}
+    96%{clip-path:polygon(0 20%,100% 22%,100% 40%,0 38%); transform:translateX(3px);}
+    97%{clip-path:polygon(0 60%,100% 58%,100% 80%,0 82%); transform:translateX(-2px);}
+    98%{clip-path:none; transform:none;}
+  }
+  .crt-tear { animation:tear 8s infinite; }
+
+  /* LOGO CLICKS */
+  #async-logo { cursor:pointer; user-select:none; }
+
+  /* Scrollbar global */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:#000; }
+  ::-webkit-scrollbar-thumb { background:#0f0; }
+
+  /* MOBILE */
+  @media(max-width:768px){
+    #found-footage-modal { flex-direction:column; }
+    #vhs-rack { max-width:100%; width:100%; max-height:200px; }
+    .tab-btn { font-size:14px; padding:3px 8px; }
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 20000;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #login-box {
+    width: min(620px, 96vw);
+    border: 1px solid rgba(0,255,0,0.35);
+    background: rgba(0,4,0,0.98);
+    padding: 0;
+    box-shadow: 0 0 60px rgba(0,255,0,0.08), inset 0 0 40px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  #login-titlebar {
+    background: rgba(0,255,0,0.08);
+    border-bottom: 1px solid rgba(0,255,0,0.25);
+    padding: 6px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; letter-spacing: 3px; color: rgba(0,255,0,0.5);
+  }
+  #login-body { padding: 28px 32px 32px; }
+  #async-logo-area {
+    text-align: center; margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0,255,0,0.12);
+  }
+  #login-terminal-pre {
+    font-size: 14px; line-height: 1.7;
+    color: rgba(0,255,0,0.65);
+    margin-bottom: 20px; min-height: 120px;
+  }
+  .login-prompt-line { animation: logAppear 0.05s ease; }
+  .login-field {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(0,255,0,0.2);
+    padding: 6px 10px;
+    background: rgba(0,10,0,0.8);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .login-field:focus-within {
+    border-color: rgba(0,255,0,0.7);
+    box-shadow: 0 0 14px rgba(0,255,0,0.15);
+  }
+  .login-field label {
+    font-size: 15px; letter-spacing: 2px;
+    color: rgba(0,255,0,0.5); white-space: nowrap; min-width: 110px;
+  }
+  .login-field input {
+    background: transparent; border: none; outline: none;
+    color: #0f0; font-family: 'VT323', monospace; font-size: 18px;
+    flex: 1; letter-spacing: 2px;
+    text-shadow: 0 0 6px #0f0; caret-color: #0f0;
+  }
+  .login-field input::placeholder { color: rgba(0,255,0,0.2); }
+  .login-field input[type="password"] { letter-spacing: 4px; }
+  #login-submit {
+    width: 100%; margin-top: 16px;
+    background: transparent;
+    border: 1px solid rgba(0,255,0,0.5);
+    color: #0f0; font-family: 'VT323', monospace; font-size: 20px;
+    padding: 8px; letter-spacing: 4px; cursor: pointer;
+    transition: all 0.2s; text-shadow: 0 0 6px #0f0;
+    position: relative; overflow: hidden;
+  }
+  #login-submit:hover {
+    background: rgba(0,255,0,0.1); border-color: #0f0;
+    box-shadow: 0 0 20px rgba(0,255,0,0.3);
+  }
+  #login-submit::after {
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,0,0.08), transparent);
+    animation: btnSweep 2s linear infinite;
+  }
+  @keyframes btnSweep { to { left: 200%; } }
+  #login-error {
+    color: #f00; font-size: 16px; letter-spacing: 2px;
+    margin-top: 10px; text-shadow: 0 0 8px #f00;
+    min-height: 24px; text-align: center;
+  }
+  #login-attempts {
+    font-size: 12px; letter-spacing: 2px;
+    color: rgba(255,0,0,0.4); text-align: right; margin-top: 6px;
+  }
+  .login-cursor::after {
+    content: '█'; animation: tbBlink 0.8s step-end infinite; color: #0f0;
+  }
+  .corner-dec {
+    position: absolute; width: 12px; height: 12px;
+    border-color: rgba(0,255,0,0.5); border-style: solid;
+  }
+  .c-tl { top:-1px;left:-1px; border-width:2px 0 0 2px; }
+  .c-tr { top:-1px;right:-1px; border-width:2px 2px 0 0; }
+  .c-bl { bottom:-1px;left:-1px; border-width:0 0 2px 2px; }
+  .c-br { bottom:-1px;right:-1px; border-width:0 2px 2px 0; }
+  #login-screen.fade-out { animation: loginFadeOut 0.8s ease forwards; }
+  @keyframes loginFadeOut {
+    0%{opacity:1;filter:blur(0)} 60%{opacity:1;filter:blur(0)} 100%{opacity:0;filter:blur(6px)}
+  }
+
+  /* PARALLAX TITLE */
+  #hero-title {
+    font-size:clamp(28px,7vw,90px);
+    letter-spacing:clamp(4px,2vw,16px);
+    text-align:center;
+    line-height:1.1;
+    position:relative; z-index:2;
+  }
+
+  /* PHASE TRANSITIONS for boot */
+  .boot-phase-flash {
+    position:absolute; inset:0; z-index:4; pointer-events:none;
+    opacity:0;
+  }
+
+  /* Green matrix rain column */
+  #matrix-canvas { position:absolute; inset:0; opacity:0.15; pointer-events:none; z-index:1; }
+</style>
+</head>
+<body>
+
+<!-- CRT EFFECTS -->
+<div id="crt-overlay"></div>
+<div id="crt-vignette"></div>
+<div id="crt-flicker"></div>
+<canvas id="static-burst-canvas" style="position:fixed;inset:0;z-index:6000;pointer-events:none;display:none;"></canvas>
+
+<!-- ENTITY WARNING -->
+<div id="entity-warning">
+  <div style="font-size:22px;letter-spacing:2px;margin-bottom:8px;">⚠ ENTITY DETECTED ⚠</div>
+  <div id="entity-warning-text" style="font-size:16px;line-height:1.5;"></div>
+  <div style="margin-top:12px;font-size:13px;color:rgba(255,0,0,0.6);">CONTAINMENT PROTOCOL INITIATED</div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <!-- scanlines on login too -->
+  <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.13) 0px,rgba(0,0,0,0.13) 1px,transparent 1px,transparent 3px);"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.88) 100%);"></div>
+
+  <!-- ambient corner labels -->
+  <div style="position:absolute;top:12px;left:16px;font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.2);z-index:2;">ASYNC-TERM v3.1.9</div>
+  <div style="position:absolute;top:12px;right:16px;font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.2);z-index:2;" id="login-clock"></div>
+  <div style="position:absolute;bottom:12px;left:16px;font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.15);z-index:2;">DIV.Ψ // THRESHOLD CONTROL</div>
+  <div style="position:absolute;bottom:12px;right:16px;font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.15);z-index:2;">NODE: ALPHA-7 // ENCRYPTED</div>
+
+  <div id="login-box" style="position:relative;z-index:2;">
+    <!-- corner decorations -->
+    <div class="corner-dec c-tl"></div>
+    <div class="corner-dec c-tr"></div>
+    <div class="corner-dec c-bl"></div>
+    <div class="corner-dec c-br"></div>
+
+    <!-- title bar -->
+    <div id="login-titlebar">
+      <span>ASYNC SECURE TERMINAL — SESSION AUTHENTICATION</span>
+      <span id="login-tb-blink" style="animation:tbBlink 1s step-end infinite;">● SECURE</span>
+    </div>
+
+    <div id="login-body">
+
+      <!-- ASYNC LOGO -->
+      <div id="async-logo-area">
+        <!-- SVG logo: triangle/threshold symbol + ASYNC FACILITY wordmark -->
+        <svg viewBox="0 0 340 110" xmlns="http://www.w3.org/2000/svg" style="width:min(300px,80vw);display:inline-block;filter:drop-shadow(0 0 12px rgba(0,255,0,0.5));">
+          <!-- Triangle threshold symbol -->
+          <polygon points="50,90 100,10 150,90" fill="none" stroke="#00ff00" stroke-width="2.5" opacity="0.9"/>
+          <!-- inner triangle -->
+          <polygon points="70,80 100,30 130,80" fill="none" stroke="#ffff00" stroke-width="1.2" opacity="0.6"/>
+          <!-- center dot -->
+          <circle cx="100" cy="65" r="4" fill="#00ffff" opacity="0.9"/>
+          <!-- horizontal lines through triangle -->
+          <line x1="58" y1="75" x2="142" y2="75" stroke="#00ff00" stroke-width="0.8" opacity="0.3"/>
+          <line x1="67" y1="60" x2="133" y2="60" stroke="#00ff00" stroke-width="0.8" opacity="0.3"/>
+          <line x1="80" y1="45" x2="120" y2="45" stroke="#00ff00" stroke-width="0.8" opacity="0.3"/>
+          <!-- ASYNC text -->
+          <text x="170" y="48" font-family="VT323, monospace" font-size="44" fill="#00ff00" letter-spacing="6" opacity="0.95">ASYNC</text>
+          <!-- divider -->
+          <line x1="168" y1="56" x2="330" y2="56" stroke="rgba(0,255,0,0.25)" stroke-width="1"/>
+          <!-- FACILITY subtext -->
+          <text x="170" y="78" font-family="VT323, monospace" font-size="22" fill="#ffff00" letter-spacing="8" opacity="0.8">FACILITY</text>
+          <!-- classification -->
+          <text x="170" y="98" font-family="VT323, monospace" font-size="12" fill="rgba(0,255,0,0.35)" letter-spacing="3">DIVISION Ψ · CLASSIFIED</text>
+        </svg>
+      </div>
+
+      <!-- typed terminal pre-auth output -->
+      <div id="login-terminal-pre"></div>
+
+      <!-- credential fields -->
+      <div id="login-fields" style="opacity:0;transition:opacity 0.5s;">
+        <div class="login-field">
+          <label>USER_ID :</label>
+          <input type="text" id="login-user" autocomplete="off" spellcheck="false" placeholder="enter identifier" maxlength="32">
+        </div>
+        <div class="login-field">
+          <label>PASSKEY :</label>
+          <input type="password" id="login-pass" autocomplete="off" placeholder="••••••••" maxlength="32">
+        </div>
+        <div class="login-field">
+          <label>AUTH CODE:</label>
+          <input type="text" id="login-auth" autocomplete="off" spellcheck="false" placeholder="Ψ-XXXXXX" maxlength="12">
+        </div>
+        <button id="login-submit" onclick="attemptLogin()">[ AUTHENTICATE ]</button>
+        <div id="login-error"></div>
+        <div id="login-attempts"></div>
+        <div style="margin-top:14px;font-size:12px;letter-spacing:2px;color:rgba(0,255,0,0.2);line-height:1.6;">
+          UNAUTHORIZED ACCESS IS MONITORED AND PROSECUTED<br>
+          UNDER EXECUTIVE ORDER Ψ-1989-11 · ALL SESSIONS LOGGED
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen" style="display:none;">
+  <canvas id="boot-canvas"></canvas>
+  <div id="boot-big-text" class="glow-green"></div>
+  <div id="boot-logo">
+    <div style="font-size:clamp(18px,4vw,42px);letter-spacing:8px;color:#ff0;text-shadow:0 0 20px #ff0,0 0 40px #ff0;">
+      ██████████████████████████████████
+    </div>
+    <div style="font-size:clamp(12px,2.5vw,22px);letter-spacing:12px;color:#0f0;margin:4px 0;text-shadow:0 0 10px #0f0;">
+      A · S · Y · N · C
+    </div>
+    <div style="font-size:clamp(8px,1.5vw,13px);letter-spacing:4px;color:rgba(0,255,0,0.6);">
+      RESEARCH FACILITY — DIVISION Ψ — THRESHOLD PROGRAM
+    </div>
+    <div style="font-size:clamp(8px,1.5vw,13px);letter-spacing:4px;color:#ff0;margin-top:4px;text-shadow:0 0 8px #ff0;">
+      ██████████████████████████████████
+    </div>
+  </div>
+  <div id="boot-terminal"></div>
+  <div style="position:relative;z-index:2;margin-top:12px;height:4px;width:min(860px,95vw);background:rgba(0,255,0,0.1);border:1px solid rgba(0,255,0,0.3);">
+    <div id="boot-progress-bar" style="height:100%;width:0%;background:#0f0;transition:width 0.3s;box-shadow:0 0 8px #0f0;"></div>
+  </div>
+</div>
+
+<!-- MAIN UI -->
+<div id="main-ui">
+
+  <!-- MATRIX RAIN BG -->
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div id="async-logo" style="display:flex;align-items:center;gap:10px;cursor:pointer;" title="Click 5x for admin">
+        <!-- mini ASYNC SVG logo -->
+        <svg viewBox="0 0 80 40" xmlns="http://www.w3.org/2000/svg" style="width:36px;height:18px;filter:drop-shadow(0 0 5px rgba(0,255,0,0.7));">
+          <polygon points="14,36 28,6 42,36" fill="none" stroke="#00ff00" stroke-width="2"/>
+          <polygon points="20,30 28,14 36,30" fill="none" stroke="#ffff00" stroke-width="1"/>
+          <circle cx="28" cy="26" r="2.5" fill="#00ffff"/>
+        </svg>
+        <div>
+          <div style="font-size:clamp(14px,2.5vw,22px);letter-spacing:4px;color:#ff0;line-height:1;text-shadow:0 0 8px #ff0;">ASYNC</div>
+          <div style="font-size:10px;letter-spacing:3px;color:rgba(0,255,0,0.5);line-height:1;">FACILITY</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:rgba(0,255,0,0.5);letter-spacing:2px;display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="topbar-blink" style="color:#f00;">● THRESHOLD ACTIVE</span>
+        <span>|</span>
+        <span id="topbar-time" style="color:#0ff;"></span>
+        <span>|</span>
+        <span style="color:#ff0;">PERSONNEL: <span id="topbar-personnel">0</span></span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="tab-btn active" onclick="switchTab('home')">HOME</button>
+        <button class="tab-btn" onclick="switchTab('levels')">LEVELS</button>
+        <button class="tab-btn" onclick="switchTab('archives')">ARCHIVES</button>
+        <button class="tab-btn" onclick="switchTab('livefeed')">LIVE FEED</button>
+        <button class="tab-btn" onclick="openFootage()">FOUND FOOTAGE</button>
+      </div>
+
+      <!-- RADIO -->
+      <div id="radio-widget">
+        <div id="transmit-led"></div>
+        <button id="radio-btn" onclick="toggleRadio()" title="Toggle Radio Comms">📻 COMMS</button>
+        <input id="radio-vol" type="range" min="0" max="1" step="0.05" value="0.4" oninput="setRadioVol(this.value)" style="display:none;">
+      </div>
+
+      <!-- HUM -->
+      <button id="hum-btn" onclick="toggleHum()">≋ HUM</button>
+
+      <!-- REBOOT -->
+      <button id="reboot-btn" onclick="rebootThreshold()">↺ REBOOT</button>
+    </div>
+  </div>
+
+  <!-- ════════ HOME TAB ════════ -->
+  <div id="tab-home" class="tab-panel active">
+
+    <!-- HERO -->
+    <div id="hero" class="scanline-wipe crt-tear">
+      <canvas id="hero-canvas"></canvas>
+      <div id="hero-parallax-bg"></div>
+
+      <div style="position:relative;z-index:2;text-align:center;">
+        <div style="font-size:clamp(11px,2vw,15px);letter-spacing:6px;color:rgba(0,255,0,0.6);margin-bottom:16px;">
+          ▓▓▓ DIVISION Ψ — LEVEL 0 THRESHOLD MONITORING ▓▓▓
+        </div>
+        <div id="hero-title" class="glow-yellow rgb-split" data-text="NO-CLIP ZONE" style="color:#ff0;">
+          NO-CLIP ZONE
+        </div>
+        <div class="glow-green" style="font-size:clamp(18px,4vw,48px);letter-spacing:6px;margin:8px 0;color:#0f0;">
+          THE BACKROOMS
+        </div>
+        <div style="font-size:clamp(11px,2vw,16px);letter-spacing:3px;color:rgba(0,255,0,0.5);margin-bottom:28px;max-width:600px;margin-left:auto;margin-right:auto;">
+          REALITY FABRIC BREACH DETECTED · ESTIMATED INTERIOR VOLUME: ∞ km³<br>
+          WALLPAPER SATURATION: 94.7% · FLUORESCENT INTEGRITY: DEGRADED
+        </div>
+
+        <!-- COUNTDOWN -->
+        <div style="background:rgba(0,0,0,0.7);border:1px solid rgba(255,0,0,0.5);padding:16px 28px;display:inline-block;margin-bottom:20px;" class="border-breathe-red">
+          <div style="font-size:13px;letter-spacing:4px;color:rgba(255,0,0,0.7);margin-bottom:4px;">NEXT NO-CLIP EVENT ESTIMATED IN</div>
+          <div id="countdown" class="glow-red" style="color:#f00;"></div>
+          <div style="font-size:12px;letter-spacing:2px;color:rgba(255,0,0,0.4);margin-top:4px;">PROBABILITY: <span id="noclip-prob" style="color:#f00;">--.--%</span></div>
+        </div>
+
+        <br>
+
+        <!-- STATS ROW -->
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
+          <div class="stat-box border-breathe">
+            <div style="font-size:12px;letter-spacing:3px;color:rgba(0,255,0,0.5);">MISSING PERSONNEL</div>
+            <div id="personnel-count" class="glow-red" style="color:#f00;">0</div>
+          </div>
+          <div class="stat-box border-breathe-yellow">
+            <div style="font-size:12px;letter-spacing:3px;color:rgba(255,255,0,0.5);">ENTITIES TRACKED</div>
+            <div style="font-size:clamp(40px,8vw,100px);" class="glow-yellow" style="color:#ff0;"><span id="entity-count">0</span></div>
+          </div>
+          <div class="stat-box border-breathe">
+            <div style="font-size:12px;letter-spacing:3px;color:rgba(0,255,0,0.5);">THRESHOLD STABILITY</div>
+            <div style="font-size:clamp(40px,8vw,100px);" class="glow-cyan" style="color:#0ff;"><span id="stability-pct">0</span>%</div>
+          </div>
+          <div class="stat-box border-breathe-red">
+            <div style="font-size:12px;letter-spacing:3px;color:rgba(255,0,0,0.5);">ACTIVE BREACHES</div>
+            <div style="font-size:clamp(40px,8vw,100px);" class="glow-red" style="color:#f00;"><span id="breach-count">0</span></div>
+          </div>
+        </div>
+
+        <div style="font-size:clamp(11px,1.5vw,14px);letter-spacing:2px;color:rgba(0,255,0,0.35);max-width:700px;margin:0 auto;line-height:1.8;">
+          IF YOU ARE READING THIS TERMINAL, YOU HAVE EITHER BEEN GRANTED LEVEL-4 CLEARANCE<br>
+          OR YOU HAVE FALLEN THROUGH THE FABRIC OF REALITY INTO <span class="glow-yellow" style="color:#ff0;">SUBSPACE LEVEL 0.</span><br>
+          DO NOT PANIC. DO NOT RUN. DO NOT MAKE SOUND ABOVE 40dB.<br>
+          <span class="glow-red" style="color:#f00;animation:tbBlink 2s step-end infinite;">THEY CAN HEAR YOUR HEARTBEAT.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MINI TERMINAL BELOW HERO -->
+    <div class="section-container">
+      <div style="border:1px solid rgba(0,255,0,0.2);padding:16px;background:rgba(0,5,0,0.95);margin-bottom:24px;" class="scanline-wipe">
+        <div style="font-size:13px;letter-spacing:3px;color:#ff0;margin-bottom:10px;border-bottom:1px solid rgba(255,255,0,0.2);padding-bottom:6px;">
+          ▌ FACILITY TERMINAL — REAL-TIME UPLINK
+        </div>
+        <div id="home-log" style="font-size:14px;line-height:1.7;color:#0f0;max-height:200px;overflow:hidden;"></div>
+      </div>
+
+      <!-- LEVEL 0 DESCRIPTION -->
+      <div class="archive-doc border-breathe">
+        <div class="stamp">LEVEL 0</div>
+        <div style="color:#ff0;font-size:22px;letter-spacing:3px;margin-bottom:8px;">THE LOBBY — PRIMARY INGRESS ZONE</div>
+        <div style="color:rgba(0,255,0,0.8);font-size:16px;line-height:1.8;">
+          Level 0 presents as an infinite maze of yellow-wallpapered rooms with moist carpet and exposed fluorescent lighting. 
+          The space appears to have no definable boundary. Atmospheric humidity is consistently elevated at 72–78%. 
+          Acoustic properties are anomalous — sound does not carry beyond <span class="redacted">████</span> meters.
+          Entities designated <span class="redacted">███████</span> have been confirmed in sub-sections past the <span class="redacted">██████</span> corridor.
+          Personnel who have successfully exited Level 0 report a distinctive <span class="redacted">████████████████</span> sensation moments before emergence.
+          No-clip probability increases near structural anomalies. Do not approach <span class="redacted">█████</span> doors.
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:rgba(0,255,0,0.4);letter-spacing:2px;">
+          DOCUMENT: ASYNC-Ψ-0001 | CLEARANCE: LEVEL 3 | LAST UPDATED: <span class="redacted">████████</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ LEVELS TAB ════════ -->
+  <div id="tab-levels" class="tab-panel">
+    <div class="section-container">
+      <div style="font-size:clamp(22px,4vw,42px);letter-spacing:4px;color:#ff0;text-shadow:0 0 12px #ff0;margin-bottom:4px;border-bottom:1px solid rgba(255,255,0,0.3);padding-bottom:10px;">
+        KNOWN THRESHOLD LEVELS
+      </div>
+      <div style="font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.4);margin-bottom:24px;">
+        DANGER RATINGS COMPILED FROM RECOVERED PERSONNEL REPORTS · <span class="glow-red" style="color:#f00;">SOME DATA REDACTED PER ORDER Ψ-7</span>
+      </div>
+      <div id="levels-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ ARCHIVES TAB ════════ -->
+  <div id="tab-archives" class="tab-panel">
+    <div class="section-container">
+      <div style="font-size:clamp(22px,4vw,42px);letter-spacing:4px;color:#ff0;text-shadow:0 0 12px #ff0;margin-bottom:4px;border-bottom:1px solid rgba(255,255,0,0.3);padding-bottom:10px;">
+        ASYNC DOCUMENT ARCHIVE
+      </div>
+      <div style="font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.4);margin-bottom:24px;">
+        RECOVERED FIELD REPORTS · INCIDENT LOGS · RESEARCH DOCUMENTS
+      </div>
+      <div id="archives-content"></div>
+    </div>
+  </div>
+
+  <!-- ════════ LIVE FEED TAB ════════ -->
+  <div id="tab-livefeed" class="tab-panel">
+    <div class="section-container">
+      <div style="font-size:clamp(22px,4vw,42px);letter-spacing:4px;color:#0ff;text-shadow:0 0 12px #0ff;margin-bottom:4px;border-bottom:1px solid rgba(0,255,255,0.3);padding-bottom:10px;">
+        LIVE TELEMETRY FEED
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <span class="topbar-blink" style="color:#f00;font-size:16px;">● LIVE</span>
+        <span style="font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.4);">UPLINK ESTABLISHED · ENCRYPTION: AES-Ψ · STREAM ID: <span style="color:#0ff;">0x3F9A</span></span>
+      </div>
+      <div id="live-feed-log"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button onclick="clearFeed()" style="background:transparent;border:1px solid rgba(0,255,0,0.3);color:#0f0;font-family:'VT323',monospace;font-size:16px;padding:4px 12px;cursor:pointer;">CLEAR</button>
+        <button onclick="pauseFeed()" id="pause-btn" style="background:transparent;border:1px solid rgba(255,255,0,0.3);color:#ff0;font-family:'VT323',monospace;font-size:16px;padding:4px 12px;cursor:pointer;">PAUSE</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-ui -->
+
+<!-- FOUND FOOTAGE MODAL -->
+<div id="found-footage-modal">
+  <button onclick="closeFootage()" style="position:absolute;top:16px;right:16px;background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:20px;padding:4px 12px;cursor:pointer;z-index:2;">✕ CLOSE</button>
+
+  <!-- TV -->
+  <div id="tv-container">
+    <div id="tv-frame">
+      <div style="text-align:center;margin-bottom:10px;font-size:13px;letter-spacing:3px;color:rgba(0,255,0,0.5);">
+        ASYNC RESEARCH FACILITY · EVIDENCE ARCHIVE
+      </div>
+      <div id="tv-screen-wrap">
+        <canvas id="tv-static-canvas"></canvas>
+        <iframe id="tv-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="tv-insert-zone">
+          <div id="vhs-tape-anim">
+            <div style="font-family:'VT323',monospace;font-size:16px;color:#ff0;text-align:center;letter-spacing:2px;">
+              <div>████████████</div>
+              <div style="font-size:12px;margin-top:4px;color:rgba(255,255,0,0.6);" id="tape-label-anim">SELECT TAPE</div>
+            </div>
+          </div>
+          <div style="font-family:'VT323',monospace;font-size:16px;letter-spacing:2px;color:rgba(0,255,0,0.5);margin-top:16px;">
+            INSERT VHS TAPE →
+          </div>
+          <div style="font-size:13px;color:rgba(0,255,0,0.3);margin-top:4px;letter-spacing:1px;">SELECT FROM RACK</div>
+        </div>
+      </div>
+      <!-- TV knobs -->
+      <div style="display:flex;justify-content:space-between;margin-top:12px;padding:0 8px;">
+        <div style="display:flex;gap:8px;">
+          <div style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#333,#111);border:2px solid #444;box-shadow:0 2px 4px rgba(0,0,0,0.8);"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#333,#111);border:2px solid #444;box-shadow:0 2px 4px rgba(0,0,0,0.8);"></div>
+        </div>
+        <div style="font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.3);align-self:center;">CTRL-V</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#f00;box-shadow:0 0 6px #f00;" class="topbar-blink"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#ff0;box-shadow:0 0 6px #ff0;"></div>
+        </div>
+      </div>
+    </div>
+    <div id="currently-playing" style="font-size:13px;letter-spacing:2px;color:rgba(255,255,0,0.5);margin-top:8px;text-align:center;min-height:20px;"></div>
+  </div>
+
+  <!-- VHS RACK -->
+  <div>
+    <div style="font-size:16px;letter-spacing:3px;color:#ff0;margin-bottom:10px;text-shadow:0 0 8px #ff0;">▌ VHS EVIDENCE RACK</div>
+    <div id="vhs-rack">
+      <!-- populated by JS -->
+    </div>
+    <div style="font-size:12px;letter-spacing:2px;color:rgba(0,255,0,0.3);margin-top:8px;">
+      EVIDENCE TAPES — PROPERTY OF ASYNC DIV.Ψ<br>
+      UNAUTHORIZED VIEWING: PENALTY CODE Ψ-11
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <button onclick="closeAdmin()" style="position:absolute;top:16px;right:16px;background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:20px;padding:4px 12px;cursor:pointer;">✕ CLOSE</button>
+  <div style="font-size:clamp(24px,5vw,60px);letter-spacing:6px;color:#f00;text-shadow:0 0 20px #f00;margin-bottom:24px;animation:entityShake 0.2s infinite;">
+    ⚠ ADMIN OVERRIDE — LEVEL 5 CLEARANCE ⚠
+  </div>
+  <div id="admin-content" style="font-size:16px;line-height:2;color:#0f0;max-width:600px;text-align:left;"></div>
+  <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+    <button onclick="adminAction('purge')" style="background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">PURGE LOGS</button>
+    <button onclick="adminAction('entities')" style="background:transparent;border:1px solid #ff0;color:#ff0;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">ENTITY SWEEP</button>
+    <button onclick="adminAction('threshold')" style="background:transparent;border:1px solid #0ff;color:#0ff;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">FORCE THRESHOLD</button>
+    <button onclick="adminAction('evacuate')" style="background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">EVACUATE</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  LOGIN SYSTEM
+// ════════════════════════════════════════════════
+
+// Valid credentials (any of these work — it's meant to feel discoverable)
+const VALID_CREDS = [
+  { user: 'admin',      pass: 'threshold', auth: 'Ψ-198901' },
+  { user: 'dr.hayes',   pass: 'level0',    auth: 'Ψ-198902' },
+  { user: 'operator',   pass: 'async1989', auth: 'Ψ-198903' },
+  { user: 'guest',      pass: 'backrooms',  auth: 'Ψ-000000' }, // easy guest
+];
+
+let loginAttempts = 0;
+let loginLocked = false;
+let loginTypingDone = false;
+
+const loginPre = document.getElementById('login-terminal-pre');
+
+const LOGIN_BOOT_LINES = [
+  { t: 120,  c: 'rgba(0,255,0,0.5)', m: 'ASYNC SECURE TERMINAL v3.1.9' },
+  { t: 280,  c: 'rgba(0,255,0,0.4)', m: 'COPYRIGHT 1989 ASYNC RESEARCH CORP.' },
+  { t: 480,  c: 'rgba(0,255,0,0.3)', m: '─────────────────────────────────────' },
+  { t: 680,  c: '#0f0',              m: 'ESTABLISHING ENCRYPTED CHANNEL...' },
+  { t: 960,  c: '#0f0',              m: '  NODE ALPHA-7: CONNECTED' },
+  { t: 1140, c: '#0f0',              m: '  AES-Ψ HANDSHAKE: COMPLETE' },
+  { t: 1340, c: '#0f0',              m: '  TUNNEL INTEGRITY: 100%' },
+  { t: 1560, c: 'rgba(0,255,0,0.4)', m: '─────────────────────────────────────' },
+  { t: 1780, c: '#ff0',              m: '⚠  CLASSIFIED SYSTEM — AUTHORIZED USERS ONLY' },
+  { t: 2050, c: 'rgba(0,255,0,0.4)', m: '─────────────────────────────────────' },
+  { t: 2300, c: '#0f0',              m: 'ENTER CREDENTIALS TO PROCEED.' },
+];
+
+function loginTypeLine(index) {
+  if (index >= LOGIN_BOOT_LINES.length) {
+    loginTypingDone = true;
+    // add cursor line
+    const cur = document.createElement('div');
+    cur.className = 'login-prompt-line login-cursor';
+    cur.style.color = 'rgba(0,255,0,0.5)';
+    cur.textContent = '> ';
+    loginPre.appendChild(cur);
+    // show fields
+    setTimeout(() => {
+      document.getElementById('login-fields').style.opacity = '1';
+      document.getElementById('login-user').focus();
+    }, 300);
+    return;
+  }
+  const line = LOGIN_BOOT_LINES[index];
+  setTimeout(() => {
+    const el = document.createElement('div');
+    el.className = 'login-prompt-line';
+    el.style.color = line.c;
+    el.textContent = line.m;
+    loginPre.appendChild(el);
+    loginTypeLine(index + 1);
+  }, index === 0 ? line.t : LOGIN_BOOT_LINES[index].t - LOGIN_BOOT_LINES[index-1].t);
+}
+
+// Login clock
+function updateLoginClock() {
+  const el = document.getElementById('login-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-US',{hour12:false}) + ' EST';
+}
+updateLoginClock();
+setInterval(updateLoginClock, 1000);
+
+// Start typing after small delay
+setTimeout(() => loginTypeLine(0), 400);
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    attemptLogin();
+  }
+});
+
+function attemptLogin() {
+  if (loginLocked) return;
+
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value.trim().toLowerCase();
+  const auth = document.getElementById('login-auth').value.trim().toUpperCase();
+  const errEl = document.getElementById('login-error');
+  const attEl = document.getElementById('login-attempts');
+
+  // Check credentials
+  const valid = VALID_CREDS.find(c =>
+    c.user === user && c.pass === pass && c.auth.toUpperCase() === auth
+  );
+
+  if (valid) {
+    errEl.style.color = '#0f0';
+    errEl.textContent = 'AUTHENTICATION SUCCESSFUL — LOADING THRESHOLD TERMINAL...';
+    loginAttempts = 0;
+
+    // Append success lines to terminal
+    ['ACCESS GRANTED.', 'LOADING ASYNC FACILITY TERMINAL...', 'INITIATING THRESHOLD BOOT SEQUENCE...']
+      .forEach((m, i) => {
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.style.color = i === 0 ? '#0ff' : '#0f0';
+          el.textContent = '> ' + m;
+          loginPre.appendChild(el);
+        }, i * 300);
+      });
+
+    setTimeout(() => {
+      const ls = document.getElementById('login-screen');
+      ls.classList.add('fade-out');
+      setTimeout(() => {
+        ls.style.display = 'none';
+        // Now start boot
+        requestAnimationFrame(bootLoop);
+      }, 800);
+    }, 1200);
+
+  } else {
+    loginAttempts++;
+    const remain = 5 - loginAttempts;
+
+    if (loginAttempts >= 5) {
+      loginLocked = true;
+      errEl.style.color = '#f00';
+      errEl.textContent = '⚠ ACCOUNT LOCKED — SECURITY TEAM NOTIFIED';
+      attEl.textContent = 'ATTEMPTS EXCEEDED — TERMINAL DISABLED';
+      document.getElementById('login-submit').disabled = true;
+      document.getElementById('login-submit').style.opacity = '0.3';
+
+      // shake the box
+      const box = document.getElementById('login-box');
+      box.style.animation = 'entityShake 0.15s 8';
+      setTimeout(() => box.style.animation = '', 1500);
+
+      // After 10s, quietly unlock (it's a game, let them try again)
+      setTimeout(() => {
+        loginLocked = false;
+        loginAttempts = 0;
+        errEl.textContent = '';
+        attEl.textContent = 'LOCKOUT EXPIRED — TRY AGAIN';
+        document.getElementById('login-submit').disabled = false;
+        document.getElementById('login-submit').style.opacity = '1';
+      }, 10000);
+
+    } else {
+      const msgs = [
+        'INVALID CREDENTIALS — ACCESS DENIED',
+        'AUTHENTICATION FAILURE — CHECK PASSKEY',
+        '⚠ WARNING: REPEATED FAILURE DETECTED',
+        '⚠ SECURITY ALERT — ONE ATTEMPT REMAINING',
+      ];
+      errEl.style.color = '#f00';
+      errEl.textContent = msgs[Math.min(loginAttempts-1, msgs.length-1)];
+      attEl.textContent = `FAILED ATTEMPTS: ${loginAttempts} / 5  —  ${remain} REMAINING`;
+
+      // Shake inputs
+      document.querySelectorAll('.login-field').forEach(f => {
+        f.style.animation = 'none';
+        f.offsetHeight;
+        f.style.borderColor = 'rgba(255,0,0,0.6)';
+        setTimeout(() => f.style.borderColor = 'rgba(0,255,0,0.2)', 1000);
+      });
+    }
+
+    // Clear password
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-auth').value = '';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  BOOT ANIMATION SYSTEM
+// ════════════════════════════════════════════════
+
+const bootCanvas = document.getElementById('boot-canvas');
+const bootCtx = bootCanvas.getContext('2d');
+const bootTerminal = document.getElementById('boot-terminal');
+const bootLogo = document.getElementById('boot-logo');
+const bootBigText = document.getElementById('boot-big-text');
+const progressBar = document.getElementById('boot-progress-bar');
+
+let bootAF;
+let bootPhase = 0;
+let bootStartTime = 0;
+const BOOT_DURATION = 20000; // 20 seconds
+
+function resizeBootCanvas() {
+  bootCanvas.width = window.innerWidth;
+  bootCanvas.height = window.innerHeight;
+}
+resizeBootCanvas();
+window.addEventListener('resize', resizeBootCanvas);
+
+// Boot particles
+const bootParticles = [];
+const bootArcs = [];
+
+function initBootParticles() {
+  for (let i = 0; i < 120; i++) {
+    bootParticles.push({
+      x: Math.random() * bootCanvas.width,
+      y: Math.random() * bootCanvas.height,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      life: Math.random(),
+      maxLife: 0.5 + Math.random() * 1.5,
+      r: Math.random() * 2,
+      color: Math.random() > 0.6 ? '#0f0' : Math.random() > 0.5 ? '#ff0' : '#0ff'
+    });
+  }
+}
+initBootParticles();
+
+function updateBootParticles(dt, intensity) {
+  bootParticles.forEach(p => {
+    p.x += p.vx * intensity;
+    p.y += p.vy * intensity;
+    p.life -= dt * 0.4;
+    if (p.life <= 0) {
+      p.x = Math.random() * bootCanvas.width;
+      p.y = Math.random() * bootCanvas.height;
+      p.life = p.maxLife;
+      p.vx = (Math.random() - 0.5) * 1.5 * intensity;
+      p.vy = (Math.random() - 0.5) * 1.5 * intensity;
+    }
+    if (p.x < 0) p.x = bootCanvas.width;
+    if (p.x > bootCanvas.width) p.x = 0;
+    if (p.y < 0) p.y = bootCanvas.height;
+    if (p.y > bootCanvas.height) p.y = 0;
+  });
+}
+
+function drawBootParticles(alpha) {
+  bootParticles.forEach(p => {
+    const a = (p.life / p.maxLife) * alpha;
+    bootCtx.beginPath();
+    bootCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    bootCtx.fillStyle = p.color.replace(')', `,${a})`).replace('rgb(', 'rgba(').replace('#0f0', `rgba(0,255,0,${a})`).replace('#ff0', `rgba(255,255,0,${a})`).replace('#0ff', `rgba(0,255,255,${a})`);
+    bootCtx.fill();
+  });
+}
+
+function drawMagneticRings(t, phase) {
+  const cx = bootCanvas.width / 2;
+  const cy = bootCanvas.height / 2;
+  const numRings = 6;
+  for (let i = 0; i < numRings; i++) {
+    const r = 60 + i * 55 + Math.sin(t * 0.001 + i) * 20;
+    const alpha = (0.1 + 0.15 * Math.sin(t * 0.002 + i * 0.7)) * Math.min(phase, 1);
+    bootCtx.beginPath();
+    bootCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    bootCtx.strokeStyle = i % 2 === 0 ? `rgba(0,255,0,${alpha})` : `rgba(255,255,0,${alpha * 0.6})`;
+    bootCtx.lineWidth = 1 + Math.sin(t * 0.003 + i) * 0.5;
+    bootCtx.stroke();
+
+    // Dots on ring
+    for (let d = 0; d < 8; d++) {
+      const angle = (d / 8) * Math.PI * 2 + t * 0.0005 * (i % 2 === 0 ? 1 : -1);
+      const dx = cx + Math.cos(angle) * r;
+      const dy = cy + Math.sin(angle) * r;
+      bootCtx.beginPath();
+      bootCtx.arc(dx, dy, 2, 0, Math.PI * 2);
+      bootCtx.fillStyle = `rgba(0,255,255,${alpha * 1.5})`;
+      bootCtx.fill();
+    }
+  }
+}
+
+function drawElectricArc(x1, y1, x2, y2, segments, alpha, color) {
+  bootCtx.beginPath();
+  bootCtx.moveTo(x1, y1);
+  const steps = segments;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const mx = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 40 * (1 - Math.abs(t - 0.5) * 2);
+    const my = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 40 * (1 - Math.abs(t - 0.5) * 2);
+    bootCtx.lineTo(mx, my);
+  }
+  bootCtx.strokeStyle = color || `rgba(0,255,255,${alpha})`;
+  bootCtx.lineWidth = 1;
+  bootCtx.shadowBlur = 8;
+  bootCtx.shadowColor = color || '#0ff';
+  bootCtx.stroke();
+  bootCtx.shadowBlur = 0;
+}
+
+function drawCRTStatic(intensity) {
+  const iData = bootCtx.createImageData(bootCanvas.width, bootCanvas.height);
+  const data = iData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (Math.random() < intensity) {
+      const v = Math.random() * 200;
+      data[i] = 0; data[i+1] = v; data[i+2] = 0; data[i+3] = 180;
+    }
+  }
+  bootCtx.putImageData(iData, 0, 0);
+}
+
+// Boot terminal lines
+const bootLines = [
+  {t:200,  txt:'ASYNC DIVISION Ψ — THRESHOLD CONTROL SYSTEM v3.1.9', col:'#0ff'},
+  {t:600,  txt:'COPYRIGHT 1989 ASYNC RESEARCH CORPORATION — ALL RIGHTS RESERVED', col:'rgba(0,255,0,0.5)'},
+  {t:1000, txt:'', col:'#0f0'},
+  {t:1100, txt:'INITIALIZING BIOS... OK', col:'#0f0'},
+  {t:1350, txt:'CHECKING MEMORY BANKS...', col:'#0f0'},
+  {t:1600, txt:'  [============================] 640K CONVENTIONAL MEMORY: OK', col:'#0f0'},
+  {t:1900, txt:'  [============================] 384K EXTENDED MEMORY: OK', col:'#0f0'},
+  {t:2100, txt:'LOADING THRESHOLD KERNEL v7.3...', col:'#ff0'},
+  {t:2500, txt:'  QUANTUM FABRIC DRIVER: LOADED', col:'#0f0'},
+  {t:2700, txt:'  REALITY ANCHOR MODULE: LOADED', col:'#0f0'},
+  {t:2900, txt:'  ENTITY DETECTION ARRAY: LOADED', col:'#0f0'},
+  {t:3100, txt:'  NO-CLIP PREVENTION SYSTEM: LOADED', col:'#0f0'},
+  {t:3300, txt:'  PERSONNEL TRACKING UPLINK: LOADED', col:'#0f0'},
+  {t:3500, txt:'', col:'#0f0'},
+  {t:3600, txt:'WARNING: ANOMALOUS READINGS IN SECTOR 7-G', col:'#f00'},
+  {t:3800, txt:'WARNING: THRESHOLD STABILITY AT 67.3% — BELOW SAFE THRESHOLD', col:'#f00'},
+  {t:4100, txt:'INITIATING CONTAINMENT PROTOCOLS...', col:'#ff0'},
+  {t:4400, txt:'  SECTOR 7-G: SEALED', col:'#0f0'},
+  {t:4600, txt:'  MAGNETORESONANCE FIELD: ACTIVE', col:'#0f0'},
+  {t:4800, txt:'  ENTITY SUPPRESSION GRID: NOMINAL', col:'#0f0'},
+  {t:5000, txt:'', col:'#0f0'},
+  {t:5100, txt:'ESTABLISHING UPLINK TO FACILITY MAINFRAME...', col:'#0ff'},
+  {t:5500, txt:'  ENCRYPTED CHANNEL: ESTABLISHED', col:'#0f0'},
+  {t:5800, txt:'  TELEMETRY STREAM: ACTIVE', col:'#0f0'},
+  {t:6000, txt:'', col:'#0f0'},
+  {t:6100, txt:'LOADING PERSONNEL DATABASE...', col:'#0f0'},
+  {t:6400, txt:'  ACTIVE PERSONNEL: 47', col:'#0f0'},
+  {t:6600, txt:'  MISSING PERSONNEL: ██ (REDACTED PER ORDER Ψ-7)', col:'#f00'},
+  {t:6900, txt:'  CASUALTIES: ██ (REDACTED)', col:'#f00'},
+  {t:7100, txt:'', col:'#0f0'},
+  {t:7200, txt:'SCANNING FOR ENTITIES...', col:'#ff0'},
+  {t:7600, txt:'  ENTITY CLASS-A "SMILER" — DETECTED IN LEVEL 0, SECTOR 4', col:'#f00'},
+  {t:7900, txt:'  ENTITY CLASS-B "SKIN-STEALER" — DETECTED IN LEVEL 5, ROOM 177', col:'#f00'},
+  {t:8200, txt:'  ENTITY CLASS-C UNKNOWN — SIGNATURE UNRECOGNIZED', col:'#f00'},
+  {t:8500, txt:'  WARNING: TOTAL ENTITY COUNT EXCEEDS SAFE OPERATIONAL PARAMETERS', col:'#f00'},
+  {t:8800, txt:'', col:'#0f0'},
+  {t:8900, txt:'RUNNING THRESHOLD DIAGNOSTICS...', col:'#0ff'},
+  {t:9300, txt:'  SPATIAL FABRIC INTEGRITY: 67.3%', col:'#ff0'},
+  {t:9600, txt:'  TEMPORAL DRIFT: +0.003 SEC/MIN', col:'#ff0'},
+  {t:9900, txt:'  MAGNETORESONANCE: 94.1%', col:'#0f0'},
+  {t:10200,txt:'  NO-CLIP PROBABILITY: 12.7% (ELEVATED)', col:'#f00'},
+  {t:10400,txt:'', col:'#0f0'},
+  {t:10500,txt:'ACTIVATING FOUND FOOTAGE ARCHIVE...', col:'#0f0'},
+  {t:10800,txt:'  EVIDENCE TAPES: 12 ACCESSIBLE', col:'#0f0'},
+  {t:11000,txt:'  EVIDENCE TAPES: ████ CLASSIFIED', col:'#f00'},
+  {t:11200,txt:'', col:'#0f0'},
+  {t:11300,txt:'ALL SYSTEMS NOMINAL.', col:'#0ff'},
+  {t:11600,txt:'', col:'#0f0'},
+  {t:11700,txt:'████████████████████████████████████████████████████', col:'#ff0'},
+  {t:12000,txt:'███          THRESHOLD OPENING SEQUENCE INITIATED         ███', col:'#ff0'},
+  {t:12300,txt:'████████████████████████████████████████████████████', col:'#ff0'},
+  {t:12600,txt:'', col:'#0f0'},
+  {t:12700,txt:'REALITY ANCHOR: DISENGAGING...', col:'#f00'},
+  {t:13000,txt:'THRESHOLD FIELD: POWERING UP...', col:'#f00'},
+  {t:13400,txt:'PORTAL STABILIZERS: ONLINE', col:'#0f0'},
+  {t:13700,txt:'COUNTING DOWN TO THRESHOLD OPEN...', col:'#ff0'},
+  {t:14000,txt:'  5...', col:'#f00'},
+  {t:14500,txt:'  4...', col:'#f00'},
+  {t:15000,txt:'  3...', col:'#f00'},
+  {t:15500,txt:'  2...', col:'#f00'},
+  {t:16000,txt:'  1...', col:'#f00'},
+];
+
+let shownBootLines = new Set();
+let bootLineEls = [];
+
+function renderBootLine(line) {
+  const el = document.createElement('div');
+  el.style.cssText = `color:${line.col};line-height:1.5;white-space:pre;`;
+  if (line.txt === '') {
+    el.innerHTML = '&nbsp;';
+  } else {
+    el.textContent = line.txt;
+  }
+  bootTerminal.appendChild(el);
+  bootLineEls.push(el);
+  bootTerminal.scrollTop = bootTerminal.scrollHeight;
+}
+
+let lastBootTime = 0;
+let bootDone = false;
+let bootShakeX = 0, bootShakeY = 0;
+
+function bootLoop(timestamp) {
+  if (!bootStartTime) bootStartTime = timestamp;
+  const elapsed = timestamp - bootStartTime;
+  const progress = Math.min(elapsed / BOOT_DURATION, 1);
+
+  // Progress bar
+  progressBar.style.width = (progress * 100) + '%';
+
+  // Show terminal lines at correct times
+  bootLines.forEach((line, i) => {
+    if (elapsed >= line.t && !shownBootLines.has(i)) {
+      shownBootLines.add(i);
+      renderBootLine(line);
+    }
+  });
+
+  // Show logo at 1s
+  if (elapsed > 800) bootLogo.style.opacity = '1';
+
+  // Canvas drawing
+  const w = bootCanvas.width, h = bootCanvas.height;
+  const cx = w / 2, cy = h / 2;
+
+  // Phase 1: 0-4s — static + rings
+  // Phase 2: 4-8s — intense rings + particles
+  // Phase 3: 8-13s — electric arcs + color flashes
+  // Phase 4: 13-17s — countdown buildup
+  // Phase 5: 17-20s — THRESHOLD OPEN
+
+  const phase1 = Math.min(elapsed / 4000, 1);
+  const phase2 = Math.max(0, Math.min((elapsed - 4000) / 4000, 1));
+  const phase3 = Math.max(0, Math.min((elapsed - 8000) / 5000, 1));
+  const phase4 = Math.max(0, Math.min((elapsed - 13000) / 3500, 1));
+  const phase5 = Math.max(0, Math.min((elapsed - 16500) / 3000, 1));
+
+  // Shake in later phases
+  if (phase4 > 0) {
+    bootShakeX = (Math.random() - 0.5) * phase4 * 8;
+    bootShakeY = (Math.random() - 0.5) * phase4 * 8;
+    bootCanvas.style.transform = `translate(${bootShakeX}px,${bootShakeY}px)`;
+  }
+
+  bootCtx.clearRect(0, 0, w, h);
+  bootCtx.fillStyle = '#000';
+  bootCtx.fillRect(0, 0, w, h);
+
+  // Background glow
+  const bgGrad = bootCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * 0.6);
+  bgGrad.addColorStop(0, `rgba(0,30,0,${0.3 * phase1})`);
+  bgGrad.addColorStop(0.5, `rgba(0,10,0,${0.15 * phase2})`);
+  bgGrad.addColorStop(1, 'transparent');
+  bootCtx.fillStyle = bgGrad;
+  bootCtx.fillRect(0, 0, w, h);
+
+  // CRT static
+  if (phase1 < 0.8 || (Math.random() < 0.05 * phase4)) {
+    drawCRTStatic(0.02 * (1 - phase1) + 0.05 * phase4);
+  }
+
+  // Magnetic rings
+  drawMagneticRings(elapsed, phase1 + phase2 * 0.5);
+
+  // Extra rings in phase 3
+  if (phase2 > 0) {
+    for (let i = 0; i < 3; i++) {
+      const r = 20 + i * 30 + Math.sin(elapsed * 0.003 + i) * 15;
+      const alpha = phase2 * 0.4;
+      bootCtx.beginPath();
+      bootCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      bootCtx.strokeStyle = `rgba(255,255,0,${alpha})`;
+      bootCtx.lineWidth = 2;
+      bootCtx.stroke();
+    }
+  }
+
+  // Particles
+  updateBootParticles(0.016, 1 + phase2 * 2);
+  drawBootParticles(phase1 * 0.8 + phase2 * 0.4);
+
+  // Electric arcs in phase 3
+  if (phase3 > 0 && Math.random() < 0.3 + phase3 * 0.4) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 200;
+    const x2 = cx + Math.cos(angle) * dist;
+    const y2 = cy + Math.sin(angle) * dist;
+    drawElectricArc(cx, cy, x2, y2, 8 + Math.floor(Math.random() * 6), 0.6 + phase3 * 0.4,
+      Math.random() > 0.5 ? `rgba(0,255,255,${0.4 + phase3 * 0.5})` : `rgba(255,255,0,${0.3 + phase3 * 0.4})`);
+  }
+
+  // Scanlines
+  for (let y = 0; y < h; y += 3) {
+    bootCtx.fillStyle = `rgba(0,0,0,0.15)`;
+    bootCtx.fillRect(0, y, w, 1);
+  }
+
+  // Phase 4 — COUNTDOWN FLASH
+  if (phase4 > 0) {
+    const flashAlpha = Math.sin(elapsed * 0.015) * 0.5 + 0.5;
+    bootCtx.fillStyle = `rgba(255,0,0,${phase4 * flashAlpha * 0.08})`;
+    bootCtx.fillRect(0, 0, w, h);
+
+    // Cross-hairs
+    bootCtx.strokeStyle = `rgba(255,0,0,${phase4 * 0.3})`;
+    bootCtx.lineWidth = 1;
+    bootCtx.setLineDash([5, 5]);
+    bootCtx.beginPath();
+    bootCtx.moveTo(cx, 0); bootCtx.lineTo(cx, h);
+    bootCtx.moveTo(0, cy); bootCtx.lineTo(w, cy);
+    bootCtx.stroke();
+    bootCtx.setLineDash([]);
+  }
+
+  // Phase 5 — THRESHOLD OPEN
+  if (phase5 > 0) {
+    bootBigText.style.opacity = phase5.toString();
+    bootBigText.style.color = `hsl(${60 - phase5 * 60},100%,60%)`;
+    bootBigText.style.textShadow = `0 0 ${20 + phase5 * 60}px currentColor, 0 0 ${phase5 * 120}px currentColor`;
+    bootBigText.innerHTML = phase5 < 0.4
+      ? `<span style="letter-spacing:8px">THRESHOLD<br>OPENING</span>`
+      : `<span style="letter-spacing:8px;color:#ff0;text-shadow:0 0 40px #ff0,0 0 80px #ff0,0 0 160px #ff0;">T H R E S H O L D<br>O P E N</span>`;
+
+    // White flash at peak
+    const flashPeak = Math.max(0, (phase5 - 0.7) / 0.3);
+    bootCtx.fillStyle = `rgba(255,255,200,${flashPeak * 0.6})`;
+    bootCtx.fillRect(0, 0, w, h);
+  }
+
+  if (progress >= 1 && !bootDone) {
+    bootDone = true;
+    // Flash white then reveal main UI
+    setTimeout(() => {
+      bootCanvas.style.transform = '';
+      document.getElementById('boot-screen').style.transition = 'opacity 0.6s';
+      document.getElementById('boot-screen').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('boot-screen').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        initMainUI();
+      }, 700);
+    }, 300);
+    return;
+  }
+
+  bootAF = requestAnimationFrame(bootLoop);
+}
+
+// boot starts after login — triggered by attemptLogin()
+
+// ════════════════════════════════════════════════
+//  AUDIO SYSTEM
+// ════════════════════════════════════════════════
+
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let radioOn = false;
+let humOn = false;
+let radioGain = null;
+let humGain = null;
+let humOsc = null;
+let radioBufferSource = null;
+let radioChatterInterval = null;
+
+function ensureAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+// Generate radio squelch sound
+function playSquelch(open) {
+  ensureAudioCtx();
+  const bufLen = audioCtx.sampleRate * 0.15;
+  const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) {
+    const t = i / audioCtx.sampleRate;
+    const env = open
+      ? Math.min(t * 40, 1) * Math.max(0, 1 - (t - 0.1) * 8)
+      : Math.min(t * 20, 1) * Math.max(0, 1 - t * 6);
+    data[i] = (Math.random() * 2 - 1) * env * 0.6
+      + Math.sin(t * 3000 * Math.PI * 2) * env * 0.15
+      + Math.sin(t * 1500 * Math.PI * 2) * env * 0.1;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const g = audioCtx.createGain();
+  g.gain.value = 0.5;
+  src.connect(g);
+  g.connect(audioCtx.destination);
+  src.start();
+}
+
+// Generate procedural radio chatter noise
+function createRadioNoiseNode() {
+  ensureAudioCtx();
+  const bufLen = audioCtx.sampleRate * 4;
+  const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  // Bandpass noise simulating voice freq range
+  for (let i = 0; i < bufLen; i++) {
+    const t = i / audioCtx.sampleRate;
+    // voice-like envelope — chunks of talking
+    const chunkT = t % 1.2;
+    const talking = chunkT < 0.6 ? 1 : 0;
+    const env = talking * Math.min(chunkT * 8, 1) * Math.max(0, 1 - (chunkT - 0.45) * 12);
+    data[i] = (Math.random() * 2 - 1) * env * 0.3;
+  }
+  return buf;
+}
+
+function startRadioChatter() {
+  ensureAudioCtx();
+  radioGain = audioCtx.createGain();
+  radioGain.gain.value = 0;
+  radioGain.connect(audioCtx.destination);
+
+  // Apply radio filter (bandpass 300-3400Hz)
+  const bpf = audioCtx.createBiquadFilter();
+  bpf.type = 'bandpass';
+  bpf.frequency.value = 1200;
+  bpf.Q.value = 0.8;
+
+  const distortion = audioCtx.createWaveShaper();
+  distortion.curve = makeDistCurve(80);
+
+  const buf = createRadioNoiseNode();
+  radioBufferSource = audioCtx.createBufferSource();
+  radioBufferSource.buffer = buf;
+  radioBufferSource.loop = true;
+  radioBufferSource.connect(bpf);
+  bpf.connect(distortion);
+  distortion.connect(radioGain);
+  radioBufferSource.start();
+
+  // Fade in
+  radioGain.gain.setTargetAtTime(parseFloat(document.getElementById('radio-vol').value) * 0.6, audioCtx.currentTime, 0.3);
+}
+
+function makeDistCurve(amount) {
+  const samples = 256;
+  const curve = new Float32Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / samples - 1;
+    curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+  }
+  return curve;
+}
+
+function stopRadioChatter() {
+  if (radioGain) {
+    radioGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+    setTimeout(() => {
+      if (radioBufferSource) { try { radioBufferSource.stop(); } catch(e){} radioBufferSource = null; }
+    }, 500);
+  }
+}
+
+function toggleRadio() {
+  ensureAudioCtx();
+  radioOn = !radioOn;
+  const led = document.getElementById('transmit-led');
+  const volSlider = document.getElementById('radio-vol');
+  const btn = document.getElementById('radio-btn');
+
+  if (radioOn) {
+    playSquelch(true);
+    setTimeout(startRadioChatter, 150);
+    led.classList.add('on');
+    volSlider.style.display = 'block';
+    btn.style.color = '#ff0';
+    btn.style.textShadow = '0 0 10px #ff0';
+  } else {
+    playSquelch(false);
+    stopRadioChatter();
+    led.classList.remove('on');
+    volSlider.style.display = 'none';
+    btn.style.color = '#0f0';
+    btn.style.textShadow = '0 0 6px #0f0';
+  }
+}
+
+function setRadioVol(v) {
+  if (radioGain) radioGain.gain.setTargetAtTime(v * 0.6, audioCtx.currentTime, 0.05);
+}
+
+function startHum() {
+  ensureAudioCtx();
+  humOsc = audioCtx.createOscillator();
+  humOsc.type = 'sawtooth';
+  humOsc.frequency.value = 60;
+  humGain = audioCtx.createGain();
+  humGain.gain.value = 0.015;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 400;
+  humOsc.connect(filter);
+  filter.connect(humGain);
+  humGain.connect(audioCtx.destination);
+  humOsc.start();
+
+  // Add 120Hz harmonic
+  const osc2 = audioCtx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = 120;
+  const g2 = audioCtx.createGain();
+  g2.gain.value = 0.008;
+  osc2.connect(g2);
+  g2.connect(audioCtx.destination);
+  osc2.start();
+  humGain._osc2 = osc2;
+  humGain._g2 = g2;
+}
+
+function stopHum() {
+  if (humOsc) { try{humOsc.stop();}catch(e){} humOsc=null; }
+  if (humGain) {
+    if (humGain._osc2) { try{humGain._osc2.stop();}catch(e){} }
+    humGain = null;
+  }
+}
+
+function toggleHum() {
+  ensureAudioCtx();
+  humOn = !humOn;
+  const btn = document.getElementById('hum-btn');
+  if (humOn) { startHum(); btn.classList.add('on'); }
+  else { stopHum(); btn.classList.remove('on'); }
+}
+
+// ════════════════════════════════════════════════
+//  MAIN UI INIT
+// ════════════════════════════════════════════════
+
+function initMainUI() {
+  initMatrixRain();
+  initHeroCanvas();
+  initLevels();
+  initArchives();
+  initVHSRack();
+  startCountdown();
+  startPersonnelCounter();
+  startEntityCounter();
+  startStabilityCounter();
+  startBreachCounter();
+  startLiveFeed();
+  startHomeLogs();
+  startEntityWarnings();
+  startStaticBursts();
+  updateClock();
+  setInterval(updateClock, 1000);
+  initAdminPanel();
+  initLogoClicks();
+}
+
+// ════════════════════════════════════════════════
+//  MATRIX RAIN
+// ════════════════════════════════════════════════
+function initMatrixRain() {
+  const canvas = document.getElementById('matrix-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  window.addEventListener('resize', () => { canvas.width=window.innerWidth; canvas.height=window.innerHeight; drops=[]; initDrops(); });
+
+  const chars = 'ASYNCΨ0123456789ABCDEF▓▒░█■□●○◆◇♦♣♠ΩΨΦΣΘΛΞΠΥΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩabcdefghijklmnopqrstuvwxyz';
+  const fontSize = 14;
+  const cols = Math.floor(canvas.width / fontSize);
+  let drops = [];
+
+  function initDrops() {
+    for (let i = 0; i < cols; i++) {
+      drops.push(Math.floor(Math.random() * canvas.height / fontSize));
+    }
+  }
+  initDrops();
+
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fontSize + 'px VT323';
+    for (let i = 0; i < drops.length; i++) {
+      const text = chars[Math.floor(Math.random() * chars.length)];
+      const alpha = Math.random() > 0.98 ? 1 : 0.15 + Math.random() * 0.2;
+      ctx.fillStyle = `rgba(0,255,0,${alpha})`;
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 50);
+}
+
+// ════════════════════════════════════════════════
+//  HERO CANVAS (orbital particles)
+// ════════════════════════════════════════════════
+function initHeroCanvas() {
+  const canvas = document.getElementById('hero-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  resize();
+
+  const particles = [];
+  for (let i = 0; i < 80; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = 100 + Math.random() * 300;
+    particles.push({
+      x: canvas.width/2 + Math.cos(angle)*r,
+      y: canvas.height/2 + Math.sin(angle)*r,
+      r, angle,
+      speed: (Math.random()-0.5)*0.003,
+      size: Math.random()*2,
+      color: Math.random()>0.7?'#ff0':Math.random()>0.5?'#0ff':'#0f0',
+      baseR: r
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p => {
+      p.angle += p.speed;
+      p.x = canvas.width/2 + Math.cos(p.angle)*p.r;
+      p.y = canvas.height/2 + Math.sin(p.angle)*p.r;
+      p.r = p.baseR + Math.sin(Date.now()*0.001+p.angle)*15;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.shadowBlur=10; ctx.shadowColor=p.color;
+      ctx.fill();
+      ctx.shadowBlur=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+  window.addEventListener('resize', resize);
+}
+
+// ════════════════════════════════════════════════
+//  COUNTDOWN
+// ════════════════════════════════════════════════
+let countdownEnd = Date.now() + (Math.random()*3600+1800)*1000;
+function startCountdown() {
+  function update() {
+    const rem = Math.max(0, countdownEnd - Date.now());
+    if (rem === 0) countdownEnd = Date.now() + (Math.random()*3600+1800)*1000;
+    const h = Math.floor(rem/3600000);
+    const m = Math.floor((rem%3600000)/60000);
+    const s = Math.floor((rem%60000)/1000);
+    document.getElementById('countdown').textContent =
+      String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const prob = (1 - rem/(3600000*3)) * 100;
+    document.getElementById('noclip-prob').textContent = Math.max(0,prob).toFixed(1) + '%';
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+// ════════════════════════════════════════════════
+//  COUNTERS
+// ════════════════════════════════════════════════
+let _personnel = 0, _targetPersonnel = 0;
+function startPersonnelCounter() {
+  _targetPersonnel = Math.floor(Math.random()*200+50);
+  setInterval(() => {
+    _targetPersonnel += Math.random()<0.3 ? Math.floor(Math.random()*3+1) : 0;
+    _personnel = Math.min(_personnel+1, _targetPersonnel);
+    document.getElementById('personnel-count').textContent = _personnel;
+    document.getElementById('topbar-personnel').textContent = _personnel;
+  }, 80);
+}
+
+let _entities = 0;
+function startEntityCounter() {
+  _entities = Math.floor(Math.random()*15+5);
+  document.getElementById('entity-count').textContent = _entities;
+  setInterval(() => {
+    if (Math.random()<0.05) {
+      _entities += Math.random()<0.7 ? 1 : -1;
+      _entities = Math.max(0,_entities);
+      document.getElementById('entity-count').textContent = _entities;
+    }
+  }, 2000);
+}
+
+let _stability = 100;
+function startStabilityCounter() {
+  _stability = 60 + Math.random()*30;
+  document.getElementById('stability-pct').textContent = _stability.toFixed(1);
+  setInterval(() => {
+    _stability += (Math.random()-0.52)*0.5;
+    _stability = Math.max(10,Math.min(99,_stability));
+    document.getElementById('stability-pct').textContent = _stability.toFixed(1);
+    const el = document.getElementById('stability-pct');
+    el.style.color = _stability < 40 ? '#f00' : _stability < 65 ? '#ff0' : '#0ff';
+  }, 1500);
+}
+
+let _breaches = 0;
+function startBreachCounter() {
+  _breaches = Math.floor(Math.random()*4);
+  document.getElementById('breach-count').textContent = _breaches;
+  setInterval(() => {
+    if (Math.random()<0.08) {
+      _breaches += Math.random()<0.6?1:-1;
+      _breaches=Math.max(0,_breaches);
+      document.getElementById('breach-count').textContent = _breaches;
+    }
+  }, 3000);
+}
+
+// ════════════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('topbar-time').textContent =
+    now.toLocaleTimeString('en-US',{hour12:false}) + ' EST';
+}
+
+// ════════════════════════════════════════════════
+//  LIVE FEED
+// ════════════════════════════════════════════════
+const FEED_MESSAGES = [
+  {col:'#0f0', msgs:[
+    'SECTOR 7-G: ANOMALOUS HUMIDITY SPIKE +12% — CAUSE UNKNOWN',
+    'THRESHOLD STABILITY NOMINAL AT CURRENT READINGS',
+    'MAINTENANCE CREW CHARLIE REPORTS LIGHT FLICKER IN JUNCTION B4',
+    'UPLINK TO SURFACE ESTABLISHED — LATENCY: 0.003ms',
+    'PERSONNEL LOG: DR. ████ CHECKED OUT LEVEL 3 EQUIPMENT',
+    'CONTAINMENT UNIT 9 PRESSURE NOMINAL',
+    'QUANTUM RESONANCE SCAN COMPLETE — NO ANOMALIES DETECTED',
+    'AUTOMATED SWEEP OF LEVELS 0-4: COMPLETE',
+    'BACKUP GENERATORS AT 94% CAPACITY',
+    'CAFETERIA REPORT: SUPPLIES ADEQUATE FOR ██ DAYS',
+  ]},
+  {col:'#ff0', msgs:[
+    '⚠ PERSONNEL ████ HAS NOT CHECKED IN — LAST KNOWN LOCATION: LEVEL 3',
+    '⚠ THRESHOLD STABILITY DROPPED TO 67.3% — MONITORING',
+    '⚠ ACOUSTIC ANOMALY DETECTED IN EAST WING — FREQUENCY: 18Hz',
+    '⚠ ENTITY MOVEMENT DETECTED — SECTOR 4 CAMERA FEED DISRUPTED',
+    '⚠ NO-CLIP EVENT PROBABILITY ELEVATED — NOTIFY ALL PERSONNEL',
+    '⚠ MAGNETORESONANCE FLUCTUATION: -8.3% — RUNNING DIAGNOSTICS',
+    '⚠ TEMPORAL DRIFT EXCEEDING PARAMETERS — RESETTING ANCHORS',
+    '⚠ UNSCHEDULED ACCESS TO ARCHIVE ROOM 7 DETECTED',
+  ]},
+  {col:'#f00', msgs:[
+    '█ CRITICAL: ENTITY CLASS-C DETECTED IN SECTOR 9 — EVACUATE IMMEDIATELY',
+    '█ CRITICAL: THRESHOLD BREACH IN SUBSECTION ████ — SEALING NOW',
+    '█ CRITICAL: PERSONNEL UNACCOUNTED: 3 — SEARCH TEAMS DISPATCHED',
+    '█ CRITICAL: REALITY FABRIC INTEGRITY AT 34% — EMERGENCY PROTOCOLS',
+    '█ CRITICAL: CAMERAS 4, 7, 12, 19 OFFLINE — PHYSICAL SWEEP REQUIRED',
+    '█ CRITICAL: ANOMALOUS GEOMETRY DETECTED — DO NOT ENTER JUNCTION ██',
+    '█ CRITICAL: UNKNOWN SIGNAL ON FREQUENCY 88.██ MHz — SOURCE UNLOCATED',
+  ]},
+  {col:'#0ff', msgs:[
+    'RADIO COMMS: "...copy that, threshold team. Level 0 clear on this sweep..."',
+    'RADIO COMMS: "...do you see that? What is— [static] ...anyone copy?"',
+    'RADIO COMMS: "...test 7 complete. We are seeing something on the scanner..."',
+    'RADIO COMMS: "...everyone get back. DO NOT APPROACH THE DOOR. [static]..."',
+    'RADIO COMMS: "...the smell is different here. Like wet carpet and... [cut]..."',
+    'RADIO COMMS: "...████ are you there? ████? [long static] ...we need backup..."',
+    'RADIO COMMS: "...confirmed visual on entity. Maintaining safe distance. Over."',
+  ]},
+];
+
+let feedPaused = false;
+let feedLog = null;
+
+function startLiveFeed() {
+  feedLog = document.getElementById('live-feed-log');
+  addFeedLine('ASYNC TELEMETRY UPLINK ESTABLISHED — STREAM ID: 0x3F9A', '#0ff');
+  addFeedLine('RECEIVING REAL-TIME FACILITY DATA...', '#0f0');
+  addFeedLine('', '#0f0');
+  setInterval(() => {
+    if (!feedPaused) {
+      const group = FEED_MESSAGES[Math.floor(Math.random()*FEED_MESSAGES.length)];
+      const msg = group.msgs[Math.floor(Math.random()*group.msgs.length)];
+      const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+      addFeedLine(`[${ts}] ${msg}`, group.col);
+    }
+  }, 2000);
+}
+
+function addFeedLine(text, color) {
+  if (!feedLog) return;
+  const el = document.createElement('div');
+  el.className = 'log-line';
+  el.style.color = color || '#0f0';
+  el.textContent = text;
+  feedLog.appendChild(el);
+  feedLog.scrollTop = feedLog.scrollHeight;
+  // Trim
+  while (feedLog.children.length > 200) feedLog.removeChild(feedLog.firstChild);
+}
+
+function clearFeed() {
+  if (feedLog) feedLog.innerHTML = '';
+  addFeedLine('LOG CLEARED BY OPERATOR', '#f00');
+}
+
+function pauseFeed() {
+  feedPaused = !feedPaused;
+  document.getElementById('pause-btn').textContent = feedPaused ? 'RESUME' : 'PAUSE';
+  document.getElementById('pause-btn').style.color = feedPaused ? '#0f0' : '#ff0';
+}
+
+// HOME LOG
+let homeLog = null;
+const HOME_LOG_MSGS = [
+  {t:'#0f0', m:'FACILITY SYSTEMS: ALL NOMINAL'},
+  {t:'#ff0', m:'WARNING: ENTITY MOVEMENT IN SECTOR 4'},
+  {t:'#0f0', m:'THRESHOLD FIELD ACTIVE — MONITORING CONTINUOUSLY'},
+  {t:'#f00', m:'CRITICAL: PERSONNEL ████ UNRESPONSIVE'},
+  {t:'#0f0', m:'LEVEL 0 SWEEP: COMPLETE — 47 ROOMS CATALOGUED'},
+  {t:'#0ff', m:'RADIO CHECK: ALL STATIONS RESPONDING'},
+  {t:'#ff0', m:'⚠ ACOUSTIC ANOMALY — EAST WING — 18Hz'},
+  {t:'#0f0', m:'BACKUP POWER: NOMINAL'},
+  {t:'#f00', m:'ENTITY DETECTED — CONTAINMENT TEAM EN ROUTE'},
+  {t:'#0f0', m:'DOOR INTEGRITY CHECK: COMPLETE'},
+];
+
+function startHomeLogs() {
+  homeLog = document.getElementById('home-log');
+  setInterval(() => {
+    const line = HOME_LOG_MSGS[Math.floor(Math.random()*HOME_LOG_MSGS.length)];
+    const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+    const el = document.createElement('div');
+    el.style.color = line.t;
+    el.textContent = `[${ts}] ${line.m}`;
+    homeLog.appendChild(el);
+    if (homeLog.children.length > 12) homeLog.removeChild(homeLog.firstChild);
+  }, 2500);
+}
+
+// ════════════════════════════════════════════════
+//  ENTITY WARNINGS
+// ════════════════════════════════════════════════
+const ENTITY_WARNINGS = [
+  {name:'THE SMILER', desc:'CLASS-A ENTITY — DETECTED 40m FROM CURRENT POSITION. DO NOT MAKE EYE CONTACT. REMAIN STATIONARY.', pos:'bottom-left'},
+  {name:'SKIN-STEALER', desc:'CLASS-B ENTITY — PROXIMITY ALERT. IF ENCOUNTERED: DO NOT SPEAK. IT WILL MIMIC YOUR VOICE.', pos:'top-right'},
+  {name:'THE HOUND', desc:'CLASS-A ENTITY — ACOUSTIC SENSOR TRIGGERED. IT CAN HEAR YOU. STOP MOVING.', pos:'bottom-right'},
+  {name:'UNKNOWN CLASS-C', desc:'UNCLASSIFIED ENTITY — SIGNATURE DOES NOT MATCH ANY KNOWN TYPE. AVOID ENGAGEMENT.', pos:'top-left'},
+  {name:'DEATHMOTHS', desc:'SWARM DETECTED — ENTITY CLUSTER IN ADJACENT ROOM. DISABLE ALL LIGHT SOURCES IMMEDIATELY.', pos:'bottom-left'},
+  {name:'THE HOWLER', desc:'AUDITORY ENTITY APPROACHING — ETA 2 MINUTES. SEAL ALL DOORS. COVER EARS.', pos:'top-right'},
+];
+
+function startEntityWarnings() {
+  function showWarning() {
+    const w = ENTITY_WARNINGS[Math.floor(Math.random()*ENTITY_WARNINGS.length)];
+    const el = document.getElementById('entity-warning');
+    document.getElementById('entity-warning-text').innerHTML =
+      `<b>ENTITY: ${w.name}</b><br>${w.desc}`;
+    el.style.display = 'block';
+    // Position
+    const p = w.pos;
+    el.style.top = p.includes('top') ? '80px' : 'auto';
+    el.style.bottom = p.includes('bottom') ? '20px' : 'auto';
+    el.style.left = p.includes('left') ? '20px' : 'auto';
+    el.style.right = p.includes('right') ? '20px' : 'auto';
+
+    setTimeout(() => { el.style.display='none'; }, 4000);
+    setTimeout(showWarning, 15000 + Math.random()*30000);
+  }
+  setTimeout(showWarning, 8000 + Math.random()*10000);
+}
+
+// ════════════════════════════════════════════════
+//  STATIC BURSTS
+// ════════════════════════════════════════════════
+function startStaticBursts() {
+  const canvas = document.getElementById('static-burst-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  function burst() {
+    canvas.style.display = 'block';
+    const duration = 100 + Math.random()*200;
+    const start = Date.now();
+    function frame() {
+      const elapsed = Date.now()-start;
+      if (elapsed > duration) { canvas.style.display='none'; setTimeout(burst, 10000+Math.random()*30000); return; }
+      const iData = ctx.createImageData(canvas.width,canvas.height);
+      const data = iData.data;
+      for(let i=0;i<data.length;i+=4){
+        if(Math.random()<0.08){
+          const v=Math.random()*200;
+          data[i]=0;data[i+1]=v;data[i+2]=0;data[i+3]=120;
+        }
+      }
+      ctx.putImageData(iData,0,0);
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  setTimeout(burst, 5000+Math.random()*15000);
+}
+
+// ════════════════════════════════════════════════
+//  LEVELS DATA
+// ════════════════════════════════════════════════
+const LEVELS = [
+  {num:0, name:'THE LOBBY', danger:35, color:'#ff0',
+   desc:'Infinite yellow wallpapered rooms. Moist carpet. Buzzing fluorescents. Entry point for most no-clip events.',
+   pop:'Moderate', entities:'Facelings, Smilers'},
+  {num:1, name:'PARKING GARAGE', danger:55, color:'#ff0',
+   desc:'Dimly lit concrete parking structure. Extends infinitely in all directions. Car alarms heard but no cars visible.',
+   pop:'Low', entities:'Smilers, Hounds'},
+  {num:2, name:'PIPE DREAMS', danger:70, color:'#f00',
+   desc:'Humid corridors filled with enormous pipes. Dripping water. Temperature extreme. Sound carries unpredictably.',
+   pop:'Very Low', entities:'Clumps, Unknown'},
+  {num:3, name:'THE ELECTRICAL STATION', danger:80, color:'#f00',
+   desc:'Massive industrial generators. Extreme electrical hazard. High entity concentration. Do not enter alone.',
+   pop:'Extremely Low', entities:'Deathmoths, Wretches'},
+  {num:4, name:'FIELD OF WHEAT', danger:40, color:'#ff0',
+   desc:'Infinite wheat field under artificial light. Calm but disorienting. Entry/exit points unmarked.',
+   pop:'Low', entities:'Facelings'},
+  {num:5, name:'TERROR HOTEL', danger:95, color:'#f00',
+   desc:'CLASSIFIED. Access requires Level 4 clearance. Extreme entity density. ████ personnel lost to date.',
+   pop:'CLASSIFIED', entities:'CLASSIFIED'},
+  {num:6, name:'LIGHTS OUT', danger:99, color:'#f00',
+   desc:'Total darkness. No artificial or natural light detectable. Entities hunt exclusively by sound and heat.',
+   pop:'0 (ASSUMED)', entities:'Howlers, Skin-Stealers'},
+  {num:7, name:'THALASSOPHOBIA', danger:88, color:'#f00',
+   desc:'Infinite ocean with no sky, no bottom. Bioluminescent entities below surface. Do not enter water.',
+   pop:'0 (CONFIRMED)', entities:'Unknown — Aquatic'},
+  {num:'?', name:'THE SYSTEM', danger:100, color:'#f00',
+   desc:'REDACTED. ASYNC personnel have not returned from ████ expeditions. This level may not follow known physics.',
+   pop:'UNKNOWN', entities:'UNKNOWN'},
+];
+
+function initLevels() {
+  const grid = document.getElementById('levels-grid');
+  LEVELS.forEach(level => {
+    const card = document.createElement('div');
+    card.className = 'level-card';
+    const dangerColor = level.danger > 80 ? '#f00' : level.danger > 60 ? '#ff0' : '#0f0';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:32px;color:${level.color};text-shadow:0 0 12px ${level.color};">LEVEL ${level.num}</span>
+        <span style="font-size:13px;letter-spacing:2px;color:${dangerColor};">DANGER: ${level.danger}%</span>
+      </div>
+      <div style="font-size:22px;letter-spacing:2px;color:#0ff;margin-bottom:8px;">${level.name}</div>
+      <div style="font-size:14px;color:rgba(0,255,0,0.7);line-height:1.6;margin-bottom:10px;">${level.desc}</div>
+      <div style="font-size:13px;color:rgba(0,255,0,0.4);">POPULATION: <span style="color:#ff0;">${level.pop}</span></div>
+      <div style="font-size:13px;color:rgba(0,255,0,0.4);">ENTITIES: <span style="color:#f00;">${level.entities}</span></div>
+      <div class="danger-bar border-breathe-red">
+        <div class="danger-fill" style="width:${level.danger}%;background:linear-gradient(90deg,${dangerColor},${dangerColor}44);"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════
+//  ARCHIVES
+// ════════════════════════════════════════════════
+const ARCHIVE_DOCS = [
+  {
+    id:'ASYNC-Ψ-0047',
+    date:'████████, 1989',
+    title:'INCIDENT REPORT — THRESHOLD BREACH EVENT 12',
+    clearance:'LEVEL 3',
+    content:`At 03:17 EST, the facility registered a threshold breach in Subsection ████. Personnel on duty reported 
+    a structural anomaly approximately ████ meters wide. Three (3) personnel entered the breach voluntarily in 
+    violation of Protocol Ψ-4. Recovery teams found equipment scattered across Level ██ approximately ████ hours 
+    later. Personnel have not been recovered. Investigation ongoing. The breach was sealed using magnetoresonance 
+    anchor Array-C. Spatial fabric integrity restored to ████%.`
+  },
+  {
+    id:'ASYNC-Ψ-0112',
+    date:'████████, 1989',
+    title:'ENTITY CLASSIFICATION UPDATE — SPECIMEN Ψ-12 "THE SKIN-STEALER"',
+    clearance:'LEVEL 4',
+    content:`Following the ████ incident, ASYNC Division Ψ has updated the classification of Specimen Ψ-12 to 
+    CLASS-B HOSTILE. The entity demonstrates advanced mimicry capabilities including vocal replication accurate 
+    to within 94.3% of target. Physical appearance mimicry takes approximately ██ hours. Personnel are instructed 
+    to establish ████████ codewords with all team members. If any team member cannot provide the correct 
+    response, treat as hostile entity immediately. Do NOT engage verbally. Do NOT make eye contact. 
+    Retreat and contact facility immediately.`
+  },
+  {
+    id:'ASYNC-Ψ-0089',
+    date:'████████, 1989',
+    title:'THRESHOLD PROGRAM OVERVIEW — YEAR 3 REVIEW',
+    clearance:'LEVEL 2',
+    content:`The ASYNC Threshold Program enters its third year with ████ confirmed levels catalogued and 
+    approximately ████████ km² of subspace mapped. Personnel turnover continues to be a challenge — ████ 
+    researchers have requested reassignment and ██ have been reported missing. Entity count has increased 
+    by ████% since Year 1 baseline measurements. The Program Director's recommendation to expand the 
+    magnetoresonance anchor network has been approved pending ████████████ budget authorization. Current 
+    operational cost: $████,███,███ per fiscal year. Congressional briefing scheduled for ████████.`
+  },
+  {
+    id:'ASYNC-Ψ-0201',
+    date:'████████, 1989',
+    title:'PERSONNEL DISAPPEARANCE — FILE Ψ-MISSING-47',
+    clearance:'LEVEL 3',
+    content:`Dr. ████████ ████, Research Lead Level 0 Studies, was last seen at 22:43 EST in the observation 
+    corridor adjacent to Subsection B. Badge scan confirms exit from main lab. No further badge activity 
+    recorded. Personal belongings found in office undisturbed. Audio recording device recovered from 
+    Subsection B contained approximately ██ minutes of ambient recording followed by ████████████████████ 
+    sounds not recognized by any known taxonomy. Recording has been classified ████████████. Search effort: 
+    ONGOING (Day ████). Probability of recovery: <████>.`
+  },
+];
+
+function initArchives() {
+  const container = document.getElementById('archives-content');
+  ARCHIVE_DOCS.forEach(doc => {
+    const el = document.createElement('div');
+    el.className = 'archive-doc border-breathe';
+    el.innerHTML = `
+      <div class="stamp">CLASSIFIED</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;font-size:13px;color:rgba(0,255,0,0.4);letter-spacing:1px;">
+        <span>DOC: <span style="color:#0ff;">${doc.id}</span></span>
+        <span>DATE: <span style="color:#ff0;" class="redacted">${doc.date}</span></span>
+        <span>CLEARANCE: <span style="color:#f00;">${doc.clearance}</span></span>
+      </div>
+      <div style="font-size:22px;letter-spacing:2px;color:#ff0;margin-bottom:12px;text-shadow:0 0 8px #ff0;">${doc.title}</div>
+      <div style="font-size:15px;line-height:1.8;color:rgba(0,255,0,0.8);">${doc.content.replace(/████+/g, m=>`<span class="redacted">${m}</span>`)}</div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+// ════════════════════════════════════════════════
+//  FOUND FOOTAGE / VHS
+// ════════════════════════════════════════════════
+const VHS_TAPES = [
+  {id:'6B_Ri5HZhqU', label:'TAPE 01 — LEVEL 0 EXPLORATION [KP-89-001]', date:'OCT 1989'},
+  {id:'n3nubZn7Zp0', label:'TAPE 02 — THRESHOLD EVENT [KP-89-002]', date:'NOV 1989'},
+  {id:'7A5yOhzHkjg', label:'TAPE 03 — ENTITY ENCOUNTER [KP-89-003]', date:'DEC 1989'},
+  {id:'aN71SJe-_PY', label:'TAPE 04 — LEVEL 3 DESCENT [KP-90-001]', date:'JAN 1990'},
+  {id:'F-kd-LVL4bQ', label:'TAPE 05 — RECOVERY OP [KP-90-002]', date:'FEB 1990'},
+  {id:'dlR_1xf4TDo', label:'TAPE 06 — ████████ [REDACTED]', date:'████████', redacted:true},
+  {id:'HCqS_n9lrSk', label:'TAPE 07 — NIGHT SWEEP LEVEL 0 [KP-90-003]', date:'MAR 1990'},
+  {id:'3cC3H_ybmYo', label:'TAPE 08 — ACOUSTIC ANOMALY [KP-90-004]', date:'APR 1990'},
+  {id:'vtrm_lQ15wI', label:'TAPE 09 — ████ INCIDENT [PARTIAL]', date:'MAY 1990', redacted:true},
+  {id:'WcP5n6DvQ1c', label:'TAPE 10 — ENTITY STUDY B [KP-90-005]', date:'JUN 1990'},
+  {id:'eWaE8uBfFeA', label:'TAPE 11 — SUBSECTION Ψ-7 [CLASSIFIED]', date:'████████', redacted:true},
+  {id:'3bC4DsOGVsE', label:'TAPE 12 — FINAL EXPEDITION [KP-90-006]', date:'JUL 1990'},
+];
+
+let currentTape = null;
+let tvStaticAF = null;
+
+function initVHSRack() {
+  const rack = document.getElementById('vhs-rack');
+  VHS_TAPES.forEach((tape, i) => {
+    const el = document.createElement('div');
+    el.className = 'vhs-tape';
+    el.id = `tape-${i}`;
+    if (tape.redacted) el.style.borderColor = 'rgba(255,0,0,0.3)';
+    el.innerHTML = `
+      <div style="font-size:18px;letter-spacing:1px;color:${tape.redacted?'#f00':'#ff0'};">${tape.label}</div>
+      <div style="font-size:12px;color:rgba(0,255,0,0.4);margin-top:2px;letter-spacing:1px;">DATE: ${tape.date}</div>
+      ${tape.redacted ? '<div style="font-size:11px;color:rgba(255,0,0,0.5);margin-top:2px;">⚠ RESTRICTED ACCESS</div>' : ''}
+    `;
+    el.onclick = () => insertTape(tape, el);
+    rack.appendChild(el);
+  });
+
+  // Start TV static
+  startTVStatic();
+}
+
+function startTVStatic() {
+  const canvas = document.getElementById('tv-static-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 320; canvas.height = 240;
+
+  function drawStatic() {
+    const iData = ctx.createImageData(canvas.width, canvas.height);
+    const data = iData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const v = Math.random() * 200;
+      data[i] = v; data[i+1] = v; data[i+2] = v; data[i+3] = 255;
+    }
+    // Scan lines
+    for (let y = 0; y < canvas.height; y += 4) {
+      for (let x = 0; x < canvas.width; x++) {
+        const idx = (y * canvas.width + x) * 4;
+        data[idx] *= 0.7; data[idx+1] *= 0.7; data[idx+2] *= 0.7;
+      }
+    }
+    ctx.putImageData(iData, 0, 0);
+    tvStaticAF = requestAnimationFrame(drawStatic);
+  }
+  drawStatic();
+}
+
+function insertTape(tape, tapeEl) {
+  // Visual: animate tape dropping
+  const tapeAnim = document.getElementById('vhs-tape-anim');
+  document.getElementById('tape-label-anim').textContent = tape.label.substring(0,20)+'...';
+  document.getElementById('tv-insert-zone').style.display = 'flex';
+  tapeAnim.style.transform = 'translateY(-200px)';
+  tapeAnim.classList.remove('inserting','inserted');
+
+  // Remove playing from all
+  document.querySelectorAll('.vhs-tape').forEach(t => t.classList.remove('playing'));
+  tapeEl.classList.add('playing');
+
+  setTimeout(() => {
+    tapeAnim.classList.add('inserting');
+  }, 100);
+
+  setTimeout(() => {
+    tapeAnim.classList.remove('inserting');
+    tapeAnim.classList.add('inserted');
+
+    // Kill static, show iframe
+    cancelAnimationFrame(tvStaticAF);
+    document.getElementById('tv-static-canvas').style.display = 'none';
+    document.getElementById('tv-insert-zone').style.display = 'none';
+
+    const iframe = document.getElementById('tv-iframe');
+    iframe.style.display = 'block';
+    iframe.src = `https://www.youtube.com/embed/${tape.id}?autoplay=1&controls=0&modestbranding=1&iv_load_policy=3`;
+    document.getElementById('currently-playing').textContent = '▶ NOW PLAYING: ' + tape.label;
+    currentTape = tape;
+
+    setTimeout(() => {
+      tapeAnim.style.transform = 'translateY(-200px)';
+      tapeAnim.classList.remove('inserted');
+    }, 200);
+  }, 900);
+}
+
+function openFootage() {
+  document.getElementById('found-footage-modal').classList.add('open');
+}
+
+function closeFootage() {
+  document.getElementById('found-footage-modal').classList.remove('open');
+  // Eject
+  const iframe = document.getElementById('tv-iframe');
+  iframe.style.display = 'none';
+  iframe.src = '';
+  document.getElementById('tv-static-canvas').style.display = 'block';
+  document.getElementById('tv-insert-zone').style.display = 'flex';
+  document.querySelectorAll('.vhs-tape').forEach(t=>t.classList.remove('playing'));
+  startTVStatic();
+  document.getElementById('currently-playing').textContent = '';
+}
+
+// ════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════════
+//  ADMIN PANEL
+// ════════════════════════════════════════════════
+let logoClickCount = 0;
+let logoClickTimer = null;
+
+function initLogoClicks() {
+  document.getElementById('async-logo').addEventListener('click', () => {
+    logoClickCount++;
+    if (logoClickTimer) clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => { logoClickCount=0; }, 2000);
+    if (logoClickCount >= 5) { logoClickCount=0; openAdmin(); }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.altKey && e.key === 'a') openAdmin();
+});
+
+function initAdminPanel() {
+  const content = document.getElementById('admin-content');
+  content.innerHTML = `
+    <div style="color:#f00;font-size:22px;letter-spacing:2px;margin-bottom:16px;">ACCESS GRANTED — ADMINISTRATOR TERMINAL</div>
+    <div style="font-size:16px;line-height:2;">
+      USER: <span style="color:#0ff;">ADMIN_Ψ</span><br>
+      CLEARANCE: <span style="color:#f00;">LEVEL 5 — EYES ONLY</span><br>
+      SESSION: <span style="color:#ff0;" id="admin-session-id"></span><br>
+      <br>
+      ACTIVE BREACHES: <span style="color:#f00;" id="admin-breaches">--</span><br>
+      ENTITIES UNCONTAINED: <span style="color:#f00;" id="admin-entities">--</span><br>
+      MISSING PERSONNEL: <span style="color:#f00;" id="admin-missing">--</span><br>
+      THRESHOLD STABILITY: <span style="color:#ff0;" id="admin-stability">--</span><br>
+      <br>
+      <span style="color:rgba(255,0,0,0.5);font-size:13px;">
+        ████████████████████████████████████████<br>
+        CLASSIFIED UNDER EXECUTIVE ORDER ████████<br>
+        UNAUTHORIZED ACCESS SUBJECT TO ████████████<br>
+        ████████████████████████████████████████
+      </span>
+    </div>
+  `;
+}
+
+function openAdmin() {
+  document.getElementById('admin-panel').classList.add('open');
+  document.getElementById('admin-session-id').textContent = '0x' + Math.random().toString(16).substr(2,8).toUpperCase();
+  document.getElementById('admin-breaches').textContent = _breaches;
+  document.getElementById('admin-entities').textContent = _entities;
+  document.getElementById('admin-missing').textContent = Math.floor(_personnel * 0.3);
+  document.getElementById('admin-stability').textContent = _stability.toFixed(1) + '%';
+}
+
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('open');
+}
+
+function adminAction(action) {
+  const msgs = {
+    purge: 'PURGING ALL LOGS... COMPLETE. 1,847 ENTRIES DELETED.',
+    entities: 'ENTITY SWEEP INITIATED... 12 ENTITIES SUPPRESSED. 3 UNRESPONSIVE.',
+    threshold: 'FORCING THRESHOLD RECALIBRATION... STABILITY: ████%. WARNING: UNPREDICTABLE SIDE EFFECTS.',
+    evacuate: 'EVACUATION ORDER BROADCAST TO ALL SECTORS... RESPONSE: ██ OF ██ PERSONNEL CONFIRMED.',
+  };
+  const content = document.getElementById('admin-content');
+  const msg = document.createElement('div');
+  msg.style.cssText = 'color:#f00;margin-top:12px;font-size:18px;animation:tbBlink 0.5s step-end 4;';
+  msg.textContent = '> ' + (msgs[action]||'COMMAND EXECUTED');
+  content.appendChild(msg);
+}
+
+// ════════════════════════════════════════════════
+//  REBOOT
+// ════════════════════════════════════════════════
+function rebootThreshold() {
+  // Stop radio
+  if (radioOn) toggleRadio();
+  // Hide main UI
+  document.getElementById('main-ui').style.display='none';
+  // Reset boot
+  bootDone = false;
+  bootStartTime = 0;
+  bootTerminal.innerHTML = '';
+  shownBootLines.clear();
+  bootLogo.style.opacity='0';
+  bootBigText.style.opacity='0';
+  progressBar.style.width='0%';
+  bootCanvas.style.transform='';
+  bootParticles.length=0;
+  initBootParticles();
+  const bs = document.getElementById('boot-screen');
+  bs.style.opacity='1';
+  bs.style.display='flex';
+  cancelAnimationFrame(bootAF);
+  requestAnimationFrame(bootLoop);
+}
+
+// TV static cleanup
+window.addEventListener('beforeunload', () => {
+  cancelAnimationFrame(tvStaticAF);
+});
+
+// Parallax on hero
+document.addEventListener('mousemove', e => {
+  const hero = document.getElementById('hero');
+  if (!hero) return;
+  const rect = hero.getBoundingClientRect();
+  if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+  const px = (e.clientX / window.innerWidth - 0.5) * 20;
+  const py = (e.clientY / window.innerHeight - 0.5) * 10;
+  const bg = document.getElementById('hero-parallax-bg');
+  if (bg) bg.style.transform = `translate(${px}px,${py}px)`;
+});
+
+</script>
+</body>
+</html>
