@@ -1,0 +1,3421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASYNC FACILITY — CLASSIFIED TERMINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --acid: #ffff00;
+    --green: #00ff00;
+    --red: #ff0000;
+    --cyan: #00ffff;
+    --bg: #000000;
+    --dim-green: #003300;
+    --dim-yellow: #333300;
+    --phosphor: rgba(0,255,0,0.03);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html, body {
+    background: #000;
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── CRT OVERLAY ── */
+  #crt-overlay {
+    position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: multiply;
+  }
+
+  #crt-vignette {
+    position: fixed; inset: 0; z-index: 9997; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.92) 100%);
+  }
+
+  #crt-flicker {
+    position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+    animation: crtFlicker 0.12s infinite;
+    opacity: 0;
+  }
+
+  @keyframes crtFlicker {
+    0%{opacity:0} 92%{opacity:0} 93%{opacity:0.04} 94%{opacity:0}
+    96%{opacity:0.02} 97%{opacity:0} 99%{opacity:0.06} 100%{opacity:0}
+  }
+
+  /* RGB SPLIT */
+  .rgb-split {
+    position:relative;
+  }
+  .rgb-split::before, .rgb-split::after {
+    content:attr(data-text);
+    position:absolute; top:0; left:0; width:100%; height:100%;
+  }
+  .rgb-split::before { color:#f00; left:2px; opacity:0.5; animation: rgbShiftR 3s infinite; }
+  .rgb-split::after  { color:#0ff; left:-2px; opacity:0.5; animation: rgbShiftC 3s infinite; }
+  @keyframes rgbShiftR { 0%,100%{transform:translateX(2px)} 50%{transform:translateX(-1px)} }
+  @keyframes rgbShiftC { 0%,100%{transform:translateX(-2px)} 50%{transform:translateX(1px)} }
+
+  /* PHOSPHOR GLOW TEXT */
+  .glow-green { text-shadow: 0 0 4px #0f0, 0 0 10px #0f0, 0 0 20px #0f0; }
+  .glow-yellow { text-shadow: 0 0 4px #ff0, 0 0 10px #ff0, 0 0 20px #ff0; }
+  .glow-red { text-shadow: 0 0 4px #f00, 0 0 10px #f00, 0 0 20px #f00; }
+  .glow-cyan { text-shadow: 0 0 4px #0ff, 0 0 10px #0ff, 0 0 20px #0ff; }
+
+  /* BREATHING BORDERS */
+  .border-breathe {
+    animation: borderBreathe 2s ease-in-out infinite;
+  }
+  @keyframes borderBreathe {
+    0%,100%{border-color:rgba(0,255,0,0.4);box-shadow:0 0 6px rgba(0,255,0,0.2);}
+    50%{border-color:rgba(0,255,0,0.9);box-shadow:0 0 20px rgba(0,255,0,0.6);}
+  }
+
+  .border-breathe-yellow {
+    animation: borderBreatheY 2.5s ease-in-out infinite;
+  }
+  @keyframes borderBreatheY {
+    0%,100%{border-color:rgba(255,255,0,0.3);box-shadow:0 0 6px rgba(255,255,0,0.1);}
+    50%{border-color:rgba(255,255,0,0.9);box-shadow:0 0 24px rgba(255,255,0,0.5);}
+  }
+
+  .border-breathe-red {
+    animation: borderBreatheR 1.8s ease-in-out infinite;
+  }
+  @keyframes borderBreatheR {
+    0%,100%{border-color:rgba(255,0,0,0.4);box-shadow:0 0 6px rgba(255,0,0,0.2);}
+    50%{border-color:rgba(255,0,0,1);box-shadow:0 0 24px rgba(255,0,0,0.8);}
+  }
+
+  /* SCANLINE WIPE */
+  .scanline-wipe {
+    position:relative; overflow:hidden;
+  }
+  .scanline-wipe::after {
+    content:'';
+    position:absolute; left:0; right:0; height:40px;
+    background: linear-gradient(transparent, rgba(0,255,0,0.05), transparent);
+    animation: scanlineWipe 4s linear infinite;
+    top:-40px;
+  }
+  @keyframes scanlineWipe { to { top:110%; } }
+
+  /* BOOT SCREEN */
+  #boot-screen {
+    position: fixed; inset: 0; z-index: 10000;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  #boot-canvas { position:absolute; inset:0; }
+
+  #boot-terminal {
+    position:relative; z-index:2;
+    width: min(860px, 95vw);
+    max-height: 55vh;
+    overflow: hidden;
+    font-family:'VT323',monospace;
+    font-size: clamp(13px,2vw,17px);
+    color: #0f0;
+    text-shadow: 0 0 6px #0f0;
+    padding: 0 8px;
+  }
+
+  #boot-logo {
+    position:relative; z-index:2;
+    text-align:center;
+    margin-bottom: 20px;
+    opacity:0;
+    transition: opacity 0.5s;
+  }
+
+  #boot-big-text {
+    position:absolute; z-index:3;
+    inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size: clamp(32px, 6vw, 80px);
+    font-family:'VT323',monospace;
+    letter-spacing:8px;
+    opacity:0;
+    transition:opacity 0.3s;
+    text-align:center;
+    padding:20px;
+  }
+
+  /* MAIN LAYOUT */
+  #main-ui {
+    display:none;
+    min-height:100vh;
+  }
+
+  /* TOP BAR */
+  #topbar {
+    position: sticky; top:0; z-index:1000;
+    background: rgba(0,0,0,0.97);
+    border-bottom: 1px solid #0f0;
+    padding: 6px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px;
+    backdrop-filter:blur(4px);
+  }
+
+  .topbar-blink { animation: tbBlink 1s step-end infinite; }
+  @keyframes tbBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* TABS */
+  .tab-btn {
+    background:transparent;
+    border:1px solid rgba(0,255,0,0.3);
+    color:#0f0;
+    font-family:'VT323',monospace;
+    font-size:18px;
+    padding:4px 14px;
+    cursor:pointer;
+    letter-spacing:1px;
+    transition:all 0.2s;
+  }
+  .tab-btn:hover, .tab-btn.active {
+    background:rgba(0,255,0,0.15);
+    border-color:#0f0;
+    text-shadow:0 0 8px #0f0;
+    box-shadow:0 0 12px rgba(0,255,0,0.3);
+  }
+  .tab-btn.active { color:#ff0; border-color:#ff0; text-shadow:0 0 8px #ff0; }
+
+  /* TAB PANELS */
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* HERO */
+  #hero {
+    min-height:85vh;
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px 20px;
+    overflow:hidden;
+    border-bottom:1px solid rgba(0,255,0,0.2);
+  }
+
+  #hero-parallax-bg {
+    position:absolute; inset:0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,40,0,0.5) 0%, rgba(0,0,0,1) 70%);
+  }
+
+  #hero-canvas { position:absolute; inset:0; opacity:0.6; }
+
+  /* LEVEL CARDS */
+  .level-card {
+    background: rgba(0,10,0,0.9);
+    border:1px solid rgba(0,255,0,0.3);
+    padding:16px;
+    cursor:pointer;
+    transition:all 0.3s;
+    position:relative;
+    overflow:hidden;
+  }
+  .level-card:hover {
+    border-color:#0f0;
+    background:rgba(0,30,0,0.9);
+    box-shadow:0 0 20px rgba(0,255,0,0.3);
+    transform:translateY(-2px);
+  }
+  .level-card::before {
+    content:'';
+    position:absolute; top:0; left:-100%; width:100%; height:1px;
+    background:linear-gradient(90deg,transparent,#0f0,transparent);
+    animation:cardSweep 4s linear infinite;
+  }
+  @keyframes cardSweep { to{left:200%;} }
+
+  .danger-bar {
+    height:6px; background:rgba(0,255,0,0.1); margin-top:8px; position:relative;
+  }
+  .danger-fill {
+    height:100%; transition:width 1s ease;
+    position:relative;
+  }
+
+  /* VHS MODAL */
+  /* ── THRESHOLD CAMERA MODAL ── */
+  #found-footage-modal {
+    position:fixed; inset:0; z-index:5000;
+    background:rgba(0,0,0,0.97);
+    display:none; align-items:flex-start; justify-content:center;
+    flex-direction:column;
+    padding:20px 24px;
+    overflow-y:auto;
+  }
+  #found-footage-modal.open { display:flex; }
+
+  .cam-cell {
+    background:#000;
+    border:1px solid rgba(0,255,0,0.25);
+    position:relative;
+    cursor:pointer;
+    overflow:hidden;
+    transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .cam-cell:hover {
+    border-color:rgba(0,255,0,0.7);
+    box-shadow:0 0 16px rgba(0,255,0,0.2);
+  }
+  .cam-cell.motion-alert {
+    border-color:#f00 !important;
+    box-shadow:0 0 20px rgba(255,0,0,0.5) !important;
+    animation:borderBreatheR 0.6s ease-in-out infinite;
+  }
+  .cam-label {
+    position:absolute; bottom:0; left:0; right:0;
+    background:rgba(0,0,0,0.75);
+    padding:4px 8px;
+    font-size:12px; letter-spacing:2px;
+    color:rgba(0,255,0,0.7);
+    display:flex; justify-content:space-between; align-items:center;
+    pointer-events:none;
+  }
+  .cam-rec { color:#f00; animation:tbBlink 1s step-end infinite; }
+
+
+
+  #tv-container {
+    position:relative;
+    width:min(480px,90vw);
+    flex-shrink:0;
+  }
+
+  #tv-frame {
+    width:100%;
+    background: linear-gradient(145deg,#1a1a1a,#0a0a0a);
+    border-radius:16px;
+    padding:24px 24px 40px;
+    box-shadow:
+      0 0 0 4px #222,
+      0 0 0 8px #111,
+      0 0 60px rgba(0,255,0,0.1),
+      inset 0 0 30px rgba(0,0,0,0.8);
+    position:relative;
+  }
+
+  #tv-screen-wrap {
+    position:relative;
+    background:#000;
+    border-radius:6px;
+    overflow:hidden;
+    aspect-ratio:4/3;
+    box-shadow:inset 0 0 20px rgba(0,0,0,0.9), 0 0 30px rgba(0,255,0,0.15);
+  }
+
+  /* (VHS/TV elements removed — replaced by camera system) */
+
+  .vhs-tape {
+    background:linear-gradient(135deg,#1c1c1c,#2a2a2a);
+    border:1px solid rgba(255,255,0,0.2);
+    padding:10px 12px;
+    margin-bottom:8px;
+    cursor:pointer;
+    transition:all 0.2s;
+    position:relative;
+    overflow:hidden;
+  }
+  .vhs-tape::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--green);
+  }
+  .vhs-tape:hover {
+    border-color:#ff0;
+    box-shadow:0 0 12px rgba(255,255,0,0.2);
+    transform:translateX(4px);
+  }
+  .vhs-tape.playing::before { background:#ff0; animation:tapeBlink 0.5s step-end infinite; }
+  @keyframes tapeBlink { 50%{opacity:0;} }
+
+  /* ADMIN PANEL */
+  #admin-panel {
+    position:fixed; inset:0; z-index:8000;
+    background:rgba(0,0,0,0.98);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px;
+    border:2px solid #f00;
+    box-shadow:0 0 60px rgba(255,0,0,0.3);
+  }
+  #admin-panel.open { display:flex; }
+
+  /* ENTITY WARNING */
+  #entity-warning {
+    position:fixed; z-index:7000;
+    background:rgba(0,0,0,0.97);
+    border:2px solid #f00;
+    padding:20px 28px;
+    font-family:'VT323',monospace;
+    color:#f00;
+    text-shadow:0 0 10px #f00;
+    box-shadow:0 0 40px rgba(255,0,0,0.5);
+    display:none;
+    max-width:400px;
+    animation:entityShake 0.1s infinite;
+  }
+  @keyframes entityShake {
+    0%{transform:translate(0,0)} 25%{transform:translate(-1px,1px)}
+    50%{transform:translate(1px,-1px)} 75%{transform:translate(-1px,-1px)}
+    100%{transform:translate(1px,1px)}
+  }
+  #entity-warning.show { display:block; }
+
+  /* RADIO */
+  #radio-widget {
+    display:flex; align-items:center; gap:8px;
+    background:rgba(0,20,0,0.8);
+    border:1px solid rgba(0,255,0,0.4);
+    padding:4px 10px;
+    border-radius:2px;
+    position:relative;
+  }
+
+  #radio-btn {
+    background:transparent; border:none; cursor:pointer;
+    font-size:20px; padding:0;
+    color:#0f0;
+    text-shadow:0 0 6px #0f0;
+    transition:all 0.2s;
+    font-family:'VT323',monospace;
+    letter-spacing:1px;
+  }
+
+  #transmit-led {
+    width:8px; height:8px; border-radius:50%;
+    background:#f00;
+    display:none;
+    box-shadow:0 0 8px #f00;
+    animation:ledBlink 0.4s step-end infinite;
+  }
+  @keyframes ledBlink { 50%{opacity:0;} }
+  #transmit-led.on { display:block; }
+
+  #radio-vol { width:50px; accent-color:#0f0; cursor:pointer; }
+
+  /* TERMINAL LOGS */
+  #live-feed-log {
+    font-family:'VT323',monospace;
+    font-size:15px;
+    color:#0f0;
+    line-height:1.6;
+    height:500px;
+    overflow-y:auto;
+    padding:12px;
+    background:rgba(0,5,0,0.95);
+    border:1px solid rgba(0,255,0,0.2);
+  }
+  #live-feed-log::-webkit-scrollbar { width:4px; }
+  #live-feed-log::-webkit-scrollbar-thumb { background:#0f0; }
+
+  .log-line { animation:logAppear 0.1s ease; }
+  @keyframes logAppear { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:none} }
+
+  /* COUNTDOWN */
+  #countdown { font-size:clamp(28px,5vw,60px); letter-spacing:4px; }
+
+  /* PERSONNEL COUNTER */
+  #personnel-count { font-size:clamp(40px,8vw,100px); }
+
+  /* REDACTED — hover to reveal */
+  .redacted {
+    background: #0f0;
+    color: transparent;
+    user-select: none;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: background 0.25s, color 0.25s;
+    position: relative;
+  }
+  .redacted:hover {
+    background: transparent;
+    color: #f00;
+    text-shadow: 0 0 8px #f00;
+  }
+  /* tooltip hint */
+  .redacted::after {
+    content: '[HOVER TO DECLASSIFY]';
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: rgba(255,0,0,0.6);
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 2px 6px;
+    border: 1px solid rgba(255,0,0,0.3);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .redacted:hover::after { opacity: 0; } /* hide tooltip once revealed */
+
+
+  /* REBOOT BTN */
+  #reboot-btn {
+    background:transparent;
+    border:1px solid #f00;
+    color:#f00;
+    font-family:'VT323',monospace;
+    font-size:16px;
+    padding:4px 12px;
+    cursor:pointer;
+    text-shadow:0 0 6px #f00;
+    transition:all 0.2s;
+    letter-spacing:1px;
+  }
+  #reboot-btn:hover {
+    background:rgba(255,0,0,0.15);
+    box-shadow:0 0 16px rgba(255,0,0,0.4);
+  }
+
+  /* STATIC BURST */
+  #static-burst {
+    position:fixed; inset:0; z-index:6000; pointer-events:none;
+    background:transparent; display:none;
+  }
+
+  /* SCROLLABLE SECTIONS */
+  .section-container {
+    max-width:1400px;
+    margin:0 auto;
+    padding:24px 16px 60px;
+  }
+
+  /* ARCHIVE DOCS */
+  .archive-doc {
+    background:rgba(0,8,0,0.95);
+    border:1px solid rgba(0,255,0,0.2);
+    padding:20px;
+    margin-bottom:20px;
+    position:relative;
+    font-size:15px;
+    line-height:1.7;
+  }
+  .archive-doc::before {
+    content:'CLASSIFIED';
+    position:absolute; top:8px; right:12px;
+    color:rgba(255,0,0,0.4);
+    font-size:11px;
+    letter-spacing:3px;
+  }
+  .stamp {
+    display:inline-block;
+    border:2px solid rgba(255,0,0,0.6);
+    color:rgba(255,0,0,0.6);
+    padding:2px 10px;
+    font-size:20px;
+    letter-spacing:4px;
+    transform:rotate(-4deg);
+    margin-bottom:10px;
+  }
+
+  /* FLUORESCENT HUM toggle */
+  #hum-btn {
+    background:transparent;
+    border:1px solid rgba(0,255,255,0.4);
+    color:#0ff;
+    font-family:'VT323',monospace;
+    font-size:14px;
+    padding:3px 8px;
+    cursor:pointer;
+    letter-spacing:1px;
+    transition:all 0.2s;
+  }
+  #hum-btn:hover, #hum-btn.on {
+    background:rgba(0,255,255,0.1);
+    border-color:#0ff;
+    box-shadow:0 0 10px rgba(0,255,255,0.3);
+  }
+
+  /* STATS ROW */
+  .stat-box {
+    background:rgba(0,8,0,0.9);
+    border:1px solid rgba(0,255,0,0.25);
+    padding:16px;
+    text-align:center;
+    flex:1;
+    min-width:140px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* TEAR EFFECT */
+  @keyframes tear {
+    0%,95%,100%{clip-path:none; transform:none;}
+    96%{clip-path:polygon(0 20%,100% 22%,100% 40%,0 38%); transform:translateX(3px);}
+    97%{clip-path:polygon(0 60%,100% 58%,100% 80%,0 82%); transform:translateX(-2px);}
+    98%{clip-path:none; transform:none;}
+  }
+  .crt-tear { animation:tear 8s infinite; }
+
+  /* LOGO CLICKS */
+  #async-logo { cursor:pointer; user-select:none; }
+
+  /* Scrollbar global */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:#000; }
+  ::-webkit-scrollbar-thumb { background:#0f0; }
+
+  /* MOBILE */
+  @media(max-width:768px){
+    #found-footage-modal { flex-direction:column; }
+    .tab-btn { font-size:14px; padding:3px 8px; }
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 20000;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #login-box {
+    width: min(620px, 96vw);
+    border: 1px solid rgba(0,255,0,0.35);
+    background: rgba(0,4,0,0.98);
+    padding: 0;
+    box-shadow: 0 0 60px rgba(0,255,0,0.08), inset 0 0 40px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  #login-titlebar {
+    background: rgba(0,255,0,0.08);
+    border-bottom: 1px solid rgba(0,255,0,0.25);
+    padding: 6px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; letter-spacing: 3px; color: rgba(0,255,0,0.5);
+  }
+  #login-body { padding: 28px 32px 32px; }
+  #async-logo-area {
+    text-align: center; margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0,255,0,0.12);
+  }
+  #login-terminal-pre {
+    font-size: 14px; line-height: 1.7;
+    color: rgba(0,255,0,0.65);
+    margin-bottom: 20px; min-height: 120px;
+  }
+  .login-prompt-line { animation: logAppear 0.05s ease; }
+  .login-field {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(0,255,0,0.2);
+    padding: 6px 10px;
+    background: rgba(0,10,0,0.8);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .login-field:focus-within {
+    border-color: rgba(0,255,0,0.7);
+    box-shadow: 0 0 14px rgba(0,255,0,0.15);
+  }
+  .login-field label {
+    font-size: 15px; letter-spacing: 2px;
+    color: rgba(0,255,0,0.5); white-space: nowrap; min-width: 110px;
+  }
+  .login-field input {
+    background: transparent; border: none; outline: none;
+    color: #0f0; font-family: 'VT323', monospace; font-size: 18px;
+    flex: 1; letter-spacing: 2px;
+    text-shadow: 0 0 6px #0f0; caret-color: #0f0;
+  }
+  .login-field input::placeholder { color: rgba(0,255,0,0.2); }
+  .login-field input[type="password"] { letter-spacing: 4px; }
+  #login-submit {
+    width: 100%; margin-top: 16px;
+    background: transparent;
+    border: 1px solid rgba(0,255,0,0.5);
+    color: #0f0; font-family: 'VT323', monospace; font-size: 20px;
+    padding: 8px; letter-spacing: 4px; cursor: pointer;
+    transition: all 0.2s; text-shadow: 0 0 6px #0f0;
+    position: relative; overflow: hidden;
+  }
+  #login-submit:hover {
+    background: rgba(0,255,0,0.1); border-color: #0f0;
+    box-shadow: 0 0 20px rgba(0,255,0,0.3);
+  }
+  #login-submit::after {
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,0,0.08), transparent);
+    animation: btnSweep 2s linear infinite;
+  }
+  @keyframes btnSweep { to { left: 200%; } }
+  #login-error {
+    color: #f00; font-size: 16px; letter-spacing: 2px;
+    margin-top: 10px; text-shadow: 0 0 8px #f00;
+    min-height: 24px; text-align: center;
+  }
+  #login-attempts {
+    font-size: 12px; letter-spacing: 2px;
+    color: rgba(255,0,0,0.4); text-align: right; margin-top: 6px;
+  }
+  .login-cursor::after {
+    content: '█'; animation: tbBlink 0.8s step-end infinite; color: #0f0;
+  }
+  .corner-dec {
+    position: absolute; width: 12px; height: 12px;
+    border-color: rgba(0,255,0,0.5); border-style: solid;
+  }
+  .c-tl { top:-1px;left:-1px; border-width:2px 0 0 2px; }
+  .c-tr { top:-1px;right:-1px; border-width:2px 2px 0 0; }
+  .c-bl { bottom:-1px;left:-1px; border-width:0 0 2px 2px; }
+  .c-br { bottom:-1px;right:-1px; border-width:0 2px 2px 0; }
+  #login-screen.fade-out { animation: loginFadeOut 0.8s ease forwards; }
+  @keyframes loginFadeOut {
+    0%{opacity:1;filter:blur(0)} 60%{opacity:1;filter:blur(0)} 100%{opacity:0;filter:blur(6px)}
+  }
+
+  /* PARALLAX TITLE */
+  #hero-title {
+    font-size:clamp(28px,7vw,90px);
+    letter-spacing:clamp(4px,2vw,16px);
+    text-align:center;
+    line-height:1.1;
+    position:relative; z-index:2;
+  }
+
+  /* PHASE TRANSITIONS for boot */
+  .boot-phase-flash {
+    position:absolute; inset:0; z-index:4; pointer-events:none;
+    opacity:0;
+  }
+
+  /* Green matrix rain column */
+  #matrix-canvas { position:absolute; inset:0; opacity:0.15; pointer-events:none; z-index:1; }
+</style>
+</head>
+<body>
+
+<!-- CRT EFFECTS -->
+<div id="crt-overlay"></div>
+<div id="crt-vignette"></div>
+<div id="crt-flicker"></div>
+<canvas id="static-burst-canvas" style="position:fixed;inset:0;z-index:6000;pointer-events:none;display:none;"></canvas>
+
+<!-- ENTITY WARNING -->
+<div id="entity-warning">
+  <div style="font-size:22px;letter-spacing:2px;margin-bottom:8px;">⚠ ENTITY DETECTED ⚠</div>
+  <div id="entity-warning-text" style="font-size:16px;line-height:1.5;"></div>
+  <div style="margin-top:12px;font-size:13px;color:rgba(255,0,0,0.6);">CONTAINMENT PROTOCOL INITIATED</div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <!-- scanlines on login too -->
+  <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.13) 0px,rgba(0,0,0,0.13) 1px,transparent 1px,transparent 3px);"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.88) 100%);"></div>
+
+  <!-- ambient corner labels -->
+  <div style="position:absolute;top:12px;left:16px;font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.2);z-index:2;">ASYNC-TERM v3.1.9</div>
+  <div style="position:absolute;top:12px;right:16px;font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.2);z-index:2;" id="login-clock"></div>
+  <div style="position:absolute;bottom:12px;left:16px;font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.15);z-index:2;">DIV.Ψ // THRESHOLD CONTROL</div>
+  <div style="position:absolute;bottom:12px;right:16px;font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.15);z-index:2;">NODE: ALPHA-7 // ENCRYPTED</div>
+
+  <div id="login-box" style="position:relative;z-index:2;">
+    <!-- corner decorations -->
+    <div class="corner-dec c-tl"></div>
+    <div class="corner-dec c-tr"></div>
+    <div class="corner-dec c-bl"></div>
+    <div class="corner-dec c-br"></div>
+
+    <!-- title bar -->
+    <div id="login-titlebar">
+      <span>ASYNC SECURE TERMINAL — SESSION AUTHENTICATION</span>
+      <span id="login-tb-blink" style="animation:tbBlink 1s step-end infinite;">● SECURE</span>
+    </div>
+
+    <div id="login-body">
+
+      <!-- ASYNC LOGO -->
+      <div id="async-logo-area">
+        <!-- SVG logo: triangle/threshold symbol + ASYNC FACILITY wordmark -->
+        <svg viewBox="0 0 340 110" xmlns="http://www.w3.org/2000/svg" style="width:min(300px,80vw);display:inline-block;filter:drop-shadow(0 0 12px rgba(0,255,0,0.5));">
+          <!-- Triangle threshold symbol -->
+          <polygon points="50,90 100,10 150,90" fill="none" stroke="#00ff00" stroke-width="2.5" opacity="0.9"/>
+          <!-- inner triangle -->
+          <polygon points="70,80 100,30 130,80" fill="none" stroke="#ffff00" stroke-width="1.2" opacity="0.6"/>
+          <!-- center dot -->
+          <circle cx="100" cy="65" r="4" fill="#00ffff" opacity="0.9"/>
+          <!-- horizontal lines through triangle -->
+          <line x1="58" y1="75" x2="142" y2="75" stroke="#00ff00" stroke-width="0.8" opacity="0.3"/>
+          <line x1="67" y1="60" x2="133" y2="60" stroke="#00ff00" stroke-width="0.8" opacity="0.3"/>
+          <line x1="80" y1="45" x2="120" y2="45" stroke="#00ff00" stroke-width="0.8" opacity="0.3"/>
+          <!-- ASYNC text -->
+          <text x="170" y="48" font-family="VT323, monospace" font-size="44" fill="#00ff00" letter-spacing="6" opacity="0.95">ASYNC</text>
+          <!-- divider -->
+          <line x1="168" y1="56" x2="330" y2="56" stroke="rgba(0,255,0,0.25)" stroke-width="1"/>
+          <!-- FACILITY subtext -->
+          <text x="170" y="78" font-family="VT323, monospace" font-size="22" fill="#ffff00" letter-spacing="8" opacity="0.8">FACILITY</text>
+          <!-- classification -->
+          <text x="170" y="98" font-family="VT323, monospace" font-size="12" fill="rgba(0,255,0,0.35)" letter-spacing="3">DIVISION Ψ · CLASSIFIED</text>
+        </svg>
+      </div>
+
+      <!-- typed terminal pre-auth output -->
+      <div id="login-terminal-pre"></div>
+
+      <!-- credential fields -->
+      <div id="login-fields" style="opacity:0;transition:opacity 0.5s;">
+        <div class="login-field">
+          <label>USER_ID :</label>
+          <input type="text" id="login-user" autocomplete="off" spellcheck="false" placeholder="enter identifier" maxlength="32">
+        </div>
+        <div class="login-field">
+          <label>PASSKEY :</label>
+          <input type="password" id="login-pass" autocomplete="off" placeholder="••••••••" maxlength="32">
+        </div>
+        <div class="login-field">
+          <label>AUTH CODE:</label>
+          <input type="text" id="login-auth" autocomplete="off" spellcheck="false" placeholder="Ψ-XXXXXX" maxlength="12">
+        </div>
+        <button id="login-submit" onclick="attemptLogin()">[ AUTHENTICATE ]</button>
+        <div id="login-error"></div>
+        <div id="login-attempts"></div>
+        <div style="margin-top:14px;font-size:12px;letter-spacing:2px;color:rgba(0,255,0,0.2);line-height:1.6;">
+          UNAUTHORIZED ACCESS IS MONITORED AND PROSECUTED<br>
+          UNDER EXECUTIVE ORDER Ψ-1989-11 · ALL SESSIONS LOGGED
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen" style="display:none;">
+  <canvas id="boot-canvas"></canvas>
+  <div id="boot-big-text" class="glow-green"></div>
+  <div id="boot-logo">
+    <div style="font-size:clamp(18px,4vw,42px);letter-spacing:8px;color:#ff0;text-shadow:0 0 20px #ff0,0 0 40px #ff0;">
+      ██████████████████████████████████
+    </div>
+    <div style="font-size:clamp(12px,2.5vw,22px);letter-spacing:12px;color:#0f0;margin:4px 0;text-shadow:0 0 10px #0f0;">
+      A · S · Y · N · C
+    </div>
+    <div style="font-size:clamp(8px,1.5vw,13px);letter-spacing:4px;color:rgba(0,255,0,0.6);">
+      RESEARCH FACILITY — DIVISION Ψ — THRESHOLD PROGRAM
+    </div>
+    <div style="font-size:clamp(8px,1.5vw,13px);letter-spacing:4px;color:#ff0;margin-top:4px;text-shadow:0 0 8px #ff0;">
+      ██████████████████████████████████
+    </div>
+  </div>
+  <div id="boot-terminal"></div>
+  <div style="position:relative;z-index:2;margin-top:12px;height:4px;width:min(860px,95vw);background:rgba(0,255,0,0.1);border:1px solid rgba(0,255,0,0.3);">
+    <div id="boot-progress-bar" style="height:100%;width:0%;background:#0f0;transition:width 0.3s;box-shadow:0 0 8px #0f0;"></div>
+  </div>
+  <button onclick="skipBoot()" style="position:relative;z-index:2;margin-top:14px;background:transparent;border:1px solid rgba(0,255,0,0.3);color:rgba(0,255,0,0.4);font-family:'VT323',monospace;font-size:14px;padding:3px 16px;cursor:pointer;letter-spacing:2px;">SKIP →</button>
+</div>
+
+<!-- MAIN UI -->
+<div id="main-ui">
+
+  <!-- MATRIX RAIN BG -->
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- TOP STATUS BAR — classified terminal style, no website nav feel -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div id="async-logo" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;" title="Click 5x for admin">
+        <svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg" style="width:52px;height:36px;filter:drop-shadow(0 0 8px #0f0) drop-shadow(0 0 16px rgba(0,255,0,0.4));">
+          <polygon points="40,4 74,52 6,52" fill="none" stroke="#00ff00" stroke-width="2.5"/>
+          <polygon points="40,16 62,48 18,48" fill="none" stroke="#ffff00" stroke-width="1.2" opacity="0.7"/>
+          <line x1="6" y1="52" x2="74" y2="52" stroke="#00ff00" stroke-width="2.5"/>
+          <circle cx="40" cy="38" r="3.5" fill="#00ffff"/>
+          <line x1="14" y1="44" x2="66" y2="44" stroke="#00ff00" stroke-width="0.7" opacity="0.4"/>
+          <line x1="22" y1="36" x2="58" y2="36" stroke="#00ff00" stroke-width="0.7" opacity="0.4"/>
+        </svg>
+        <div style="line-height:1;">
+          <div style="font-size:clamp(16px,2.5vw,26px);letter-spacing:5px;color:#ff0;text-shadow:0 0 10px #ff0,0 0 20px rgba(255,255,0,0.4);font-family:'VT323',monospace;">ASYNC</div>
+          <div style="font-size:11px;letter-spacing:4px;color:rgba(0,255,0,0.6);font-family:'VT323',monospace;">FACILITY</div>
+        </div>
+      </div>
+
+      <!-- Status indicators — no nav tabs, just raw data -->
+      <div style="font-size:12px;letter-spacing:2px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <span class="topbar-blink" style="color:#f00;font-size:13px;">⬤ THRESHOLD ACTIVE</span>
+        <span style="color:rgba(0,255,0,0.25);">│</span>
+        <span id="topbar-time" style="color:#0ff;"></span>
+        <span style="color:rgba(0,255,0,0.25);">│</span>
+        <span style="color:rgba(255,255,0,0.7);">KV31 PERSONNEL: <span id="topbar-personnel" style="color:#ff0;">0</span></span>
+        <span style="color:rgba(0,255,0,0.25);">│</span>
+        <span style="color:rgba(0,255,0,0.5);">NODE: ALPHA-7</span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <!-- Section nav — styled as raw terminal commands not tabs -->
+      <div style="display:flex;gap:2px;">
+        <button class="tab-btn active" onclick="switchTab('home')">[STATUS]</button>
+        <button class="tab-btn" onclick="switchTab('levels')">[AREAS]</button>
+        <button class="tab-btn" onclick="switchTab('archives')">[DOCS]</button>
+        <button class="tab-btn" onclick="switchTab('livefeed')">[UPLINK]</button>
+        <button class="tab-btn" onclick="openFootage()">[CAMERAS]</button>
+      </div>
+
+      <!-- RADIO -->
+      <div id="radio-widget">
+        <div id="transmit-led"></div>
+        <button id="radio-btn" onclick="toggleRadio()" title="Toggle KV31 Radio Comms">◈ RADIO</button>
+        <input id="radio-vol" type="range" min="0" max="1" step="0.05" value="0.7" oninput="setRadioVol(this.value)" style="display:none;">
+      </div>
+
+      <button id="hum-btn" onclick="toggleHum()">≋ HUM</button>
+      <button id="reboot-btn" onclick="rebootThreshold()">↺ REBOOT</button>
+    </div>
+  </div>
+
+  <!-- ════════ STATUS TAB (was HOME) ════════ -->
+  <div id="tab-home" class="tab-panel active">
+
+    <!-- RAW TERMINAL DASHBOARD — no hero, no centered layout, just data -->
+    <div id="hero" class="scanline-wipe crt-tear" style="min-height:auto;padding:0;border-bottom:1px solid rgba(0,255,0,0.12);">
+      <canvas id="hero-canvas" style="opacity:0.2;"></canvas>
+      <div id="hero-parallax-bg" style="background:radial-gradient(ellipse at 30% 50%, rgba(0,20,0,0.4) 0%, rgba(0,0,0,1) 65%);"></div>
+
+      <div style="position:relative;z-index:2;padding:20px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(0,255,0,0.1);">
+        <!-- Left: system ID -->
+        <div style="border-right:1px solid rgba(0,255,0,0.1);padding-right:20px;">
+          <div style="font-size:10px;letter-spacing:4px;color:rgba(0,255,0,0.35);margin-bottom:4px;">SYSTEM IDENTIFICATION</div>
+          <div style="font-size:clamp(22px,4vw,42px);letter-spacing:3px;color:#ff0;text-shadow:0 0 12px #ff0;line-height:1;">THE COMPLEX</div>
+          <div style="font-size:14px;letter-spacing:2px;color:rgba(0,255,0,0.5);margin-top:2px;">ASYNC RESEARCH INSTITUTE</div>
+          <div style="font-size:12px;letter-spacing:2px;color:rgba(0,255,0,0.3);margin-top:1px;">SAN JOSE, CA · KV31 · EST.1989</div>
+          <div style="margin-top:10px;font-size:11px;letter-spacing:3px;color:rgba(255,0,0,0.5);line-height:1.6;">
+            LPMD STATUS: <span class="topbar-blink" style="color:#f00;">ACTIVE</span><br>
+            THRESHOLD: <span style="color:#0f0;">OPEN</span><br>
+            CLEARANCE REQ: <span style="color:#ff0;">LEVEL 3+</span>
+          </div>
+        </div>
+
+        <!-- Center: live counters -->
+        <div style="padding:0 20px;border-right:1px solid rgba(0,255,0,0.1);">
+          <div style="font-size:10px;letter-spacing:4px;color:rgba(0,255,0,0.35);margin-bottom:8px;">LIVE TELEMETRY</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:rgba(0,255,0,0.4);">MISSING</div>
+              <div id="personnel-count" style="font-size:clamp(28px,4vw,52px);color:#f00;text-shadow:0 0 10px #f00;line-height:1;">0</div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:rgba(0,255,0,0.4);">ENTITIES</div>
+              <div style="font-size:clamp(28px,4vw,52px);color:#ff0;text-shadow:0 0 10px #ff0;line-height:1;"><span id="entity-count">0</span></div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:rgba(0,255,0,0.4);">STABILITY</div>
+              <div style="font-size:clamp(28px,4vw,52px);color:#0ff;text-shadow:0 0 10px #0ff;line-height:1;"><span id="stability-pct">0</span>%</div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:rgba(0,255,0,0.4);">BREACHES</div>
+              <div style="font-size:clamp(28px,4vw,52px);color:#f00;text-shadow:0 0 10px #f00;line-height:1;"><span id="breach-count">0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: countdown + warning -->
+        <div style="padding-left:20px;">
+          <div style="font-size:10px;letter-spacing:4px;color:rgba(0,255,0,0.35);margin-bottom:6px;">NEXT NULL ZONE EVENT</div>
+          <div id="countdown" style="font-size:clamp(26px,4vw,48px);letter-spacing:4px;color:#f00;text-shadow:0 0 12px #f00;"></div>
+          <div style="font-size:11px;letter-spacing:2px;color:rgba(255,0,0,0.4);margin-top:2px;">PROB: <span id="noclip-prob" style="color:#f00;">--.--%</span></div>
+          <div style="margin-top:14px;font-size:11px;letter-spacing:1px;color:rgba(255,0,0,0.5);line-height:1.8;border-top:1px solid rgba(255,0,0,0.15);padding-top:10px;">
+            ⚠ DO NOT FOLLOW SOUNDS<br>
+            ⚠ SUITS SEALED AT ALL TIMES<br>
+            <span class="topbar-blink" style="color:#f00;">⚠ LIFEFORM CONFIRMED IN 14C</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MINI TERMINAL + DOC BELOW -->
+    <div class="section-container">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <!-- Facility terminal log -->
+        <div style="border:1px solid rgba(0,255,0,0.15);background:rgba(0,4,0,0.97);">
+          <div style="padding:6px 12px;border-bottom:1px solid rgba(0,255,0,0.1);font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);display:flex;justify-content:space-between;">
+            <span>FACILITY UPLINK</span><span class="topbar-blink" style="color:#f00;">⬤ LIVE</span>
+          </div>
+          <div id="home-log" style="font-size:13px;line-height:1.7;color:#0f0;max-height:180px;overflow:hidden;padding:10px 12px;"></div>
+        </div>
+        <!-- Quick-access data block -->
+        <div style="border:1px solid rgba(0,255,0,0.15);background:rgba(0,4,0,0.97);">
+          <div style="padding:6px 12px;border-bottom:1px solid rgba(0,255,0,0.1);font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);">INCIDENT REFERENCE</div>
+          <div style="padding:10px 12px;font-size:13px;line-height:1.9;color:rgba(0,255,0,0.7);">
+            <span style="color:rgba(0,255,0,0.35);">OCT 17 1989</span> — THRESHOLD OPENED. LOMA PRIETA.<br>
+            <span style="color:rgba(0,255,0,0.35);">FEB 02 1990</span> — NICOLAS BOLTON AUTOPSY.<br>
+            <span style="color:rgba(0,255,0,0.35);">MAR 01 1990</span> — PETER TENCH DISPLACEMENT.<br>
+            <span style="color:rgba(0,255,0,0.35);">MAR 05 1990</span> — LIFEFORM: MOTION DETECTED.<br>
+            <span style="color:rgba(0,255,0,0.35);">MAY 06 1990</span> — <span style="color:#f00;">PITFALLS. FIRST CONTACT.</span><br>
+            <span style="color:rgba(0,255,0,0.35);">MAY 25 1990</span> — <span style="color:#f00;">TENCH INCIDENT. BLUME SHOT.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEVEL 0 DESCRIPTION -->
+      <div class="archive-doc border-breathe">
+        <div class="stamp">PROJECT KV31</div>
+        <div style="color:#ff0;font-size:22px;letter-spacing:3px;margin-bottom:8px;">THE COMPLEX — PRIMARY INGRESS ZONE</div>
+        <div style="color:rgba(0,255,0,0.8);font-size:16px;line-height:1.8;">
+          The Complex presents as an infinite maze of <span class="redacted" title="yellow-wallpapered">yellow-wallpapered</span> rooms with moist carpet and exposed fluorescent lighting.
+          Spatial volume is estimated to be <span class="redacted" title="infinite">infinite</span> — no boundary has been located in over <span class="redacted" title="four years">four years</span> of active exploration.
+          The <span class="redacted" title="Lifeform">Lifeform</span> has been confirmed active past the <span class="redacted" title="Room 14C corridor">Room 14C corridor</span>.
+          Personnel who have entered via <span class="redacted" title="Null Zones">Null Zones</span> report disorientation and temporal displacement.
+          The <span class="redacted" title="Low-Proximity Magnetic Distortion System">Low-Proximity Magnetic Distortion System</span> — the Threshold — remains the only confirmed entry and exit point under Async control.
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:rgba(0,255,0,0.4);letter-spacing:2px;">
+          DOCUMENT: ASYNC-KV31-0001 | CLEARANCE: LEVEL 3 | SAN JOSE, CA | LAST UPDATED: <span class="redacted" title="NOV 14, 1989">NOV 14, 1989</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ LEVELS TAB ════════ -->
+  <div id="tab-levels" class="tab-panel">
+    <div class="section-container">
+      <div style="font-size:clamp(22px,4vw,42px);letter-spacing:4px;color:#ff0;text-shadow:0 0 12px #ff0;margin-bottom:4px;border-bottom:1px solid rgba(255,255,0,0.3);padding-bottom:10px;">
+        COMPLEX — DOCUMENTED AREAS
+      </div>
+      <div style="font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.4);margin-bottom:24px;">
+        KV31 FIELD REPORTS — SAN JOSE ASYNC FACILITY — <span class="glow-red" style="color:#f00;">SOME DATA SEALED UNDER EXECUTIVE ORDER KV31-7</span>
+      </div>
+      <div id="levels-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ ARCHIVES TAB ════════ -->
+  <div id="tab-archives" class="tab-panel">
+    <div class="section-container">
+      <div style="font-size:clamp(22px,4vw,42px);letter-spacing:4px;color:#ff0;text-shadow:0 0 12px #ff0;margin-bottom:4px;border-bottom:1px solid rgba(255,255,0,0.3);padding-bottom:10px;">
+        ASYNC DOCUMENT ARCHIVE
+      </div>
+      <div style="font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.4);margin-bottom:24px;">
+        RECOVERED FIELD REPORTS · INCIDENT LOGS · RESEARCH DOCUMENTS
+      </div>
+      <div id="archives-content"></div>
+    </div>
+  </div>
+
+  <!-- ════════ LIVE FEED TAB ════════ -->
+  <div id="tab-livefeed" class="tab-panel">
+    <div class="section-container">
+      <div style="font-size:clamp(22px,4vw,42px);letter-spacing:4px;color:#0ff;text-shadow:0 0 12px #0ff;margin-bottom:4px;border-bottom:1px solid rgba(0,255,255,0.3);padding-bottom:10px;">
+        LIVE TELEMETRY FEED
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <span class="topbar-blink" style="color:#f00;font-size:16px;">● LIVE</span>
+        <span style="font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.4);">UPLINK ESTABLISHED · ENCRYPTION: AES-Ψ · STREAM ID: <span style="color:#0ff;">0x3F9A</span></span>
+      </div>
+      <div id="live-feed-log"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button onclick="clearFeed()" style="background:transparent;border:1px solid rgba(0,255,0,0.3);color:#0f0;font-family:'VT323',monospace;font-size:16px;padding:4px 12px;cursor:pointer;">CLEAR</button>
+        <button onclick="pauseFeed()" id="pause-btn" style="background:transparent;border:1px solid rgba(255,255,0,0.3);color:#ff0;font-family:'VT323',monospace;font-size:16px;padding:4px 12px;cursor:pointer;">PAUSE</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-ui -->
+
+<!-- THRESHOLD CAMERA SYSTEM MODAL — BODYCAM STYLE -->
+<div id="found-footage-modal">
+  <button onclick="closeFootage()" style="position:absolute;top:12px;right:14px;background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.5);color:#f00;font-family:'VT323',monospace;font-size:18px;padding:3px 12px;cursor:pointer;z-index:10;letter-spacing:1px;">✕ EXIT</button>
+
+  <div style="position:relative;z-index:2;width:100%;max-width:1280px;">
+
+    <!-- HEADER -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(0,255,0,0.12);">
+      <span class="topbar-blink" style="color:#f00;font-size:14px;">⬤ LIVE</span>
+      <span style="font-size:clamp(14px,2.5vw,24px);letter-spacing:4px;color:#ff0;text-shadow:0 0 8px #ff0;">KV31 BODYCAM ARRAY</span>
+      <span style="font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.35);">7 FEEDS · MOTION DETECTION ACTIVE · ENCRYPTED</span>
+    </div>
+
+    <!-- CAMERA GRID — bodycam style -->
+    <div id="cam-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:8px;"></div>
+
+    <!-- SELECTED CAMERA EXPANDED — full bodycam -->
+    <div id="cam-expanded" style="display:none;margin-top:12px;position:relative;background:#000;border:1px solid rgba(0,255,0,0.3);">
+      <canvas id="cam-exp-canvas" style="width:100%;display:block;"></canvas>
+      <div style="padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,255,0,0.1);flex-wrap:wrap;gap:8px;">
+        <div id="cam-exp-status" style="font-size:13px;letter-spacing:2px;"></div>
+        <button onclick="closeCamExpanded()" style="background:transparent;border:1px solid rgba(0,255,0,0.25);color:rgba(0,255,0,0.5);font-family:'VT323',monospace;font-size:14px;padding:2px 12px;cursor:pointer;letter-spacing:1px;">▼ MINIMIZE</button>
+      </div>
+    </div>
+
+    <!-- MOTION EVENT LOG -->
+    <div style="margin-top:10px;border:1px solid rgba(0,255,0,0.1);background:rgba(0,3,0,0.95);padding:8px 12px;max-height:100px;overflow-y:auto;">
+      <div style="font-size:10px;letter-spacing:3px;color:rgba(0,255,0,0.3);margin-bottom:4px;">MOTION LOG</div>
+      <div id="cam-motion-log"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LEVEL DETAIL MODAL -->
+<div id="level-modal" style="position:fixed;inset:0;z-index:6500;background:rgba(0,0,0,0.97);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:min(700px,95vw);border:1px solid rgba(0,255,0,0.4);background:rgba(0,5,0,0.99);position:relative;max-height:90vh;overflow-y:auto;">
+    <!-- corner decs -->
+    <div class="corner-dec c-tl"></div><div class="corner-dec c-tr"></div>
+    <div class="corner-dec c-bl"></div><div class="corner-dec c-br"></div>
+
+    <div id="level-modal-titlebar" style="background:rgba(0,255,0,0.07);border-bottom:1px solid rgba(0,255,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;letter-spacing:3px;color:rgba(0,255,0,0.5);">ASYNC KV31 — CLASSIFIED AREA DOSSIER</span>
+      <button onclick="closeLevelModal()" style="background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:18px;padding:2px 10px;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="padding:24px 28px 28px;">
+      <div id="level-modal-badge" style="display:inline-block;border:2px solid rgba(255,0,0,0.5);color:rgba(255,0,0,0.5);padding:2px 12px;font-size:18px;letter-spacing:4px;transform:rotate(-2deg);margin-bottom:14px;">CLASSIFIED</div>
+      <div id="level-modal-num" style="font-size:42px;letter-spacing:4px;margin-bottom:4px;"></div>
+      <div id="level-modal-name" style="font-size:26px;letter-spacing:3px;color:#0ff;margin-bottom:16px;border-bottom:1px solid rgba(0,255,0,0.15);padding-bottom:12px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:rgba(0,10,0,0.8);border:1px solid rgba(0,255,0,0.15);padding:10px 14px;">
+          <div style="font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);margin-bottom:4px;">DANGER RATING</div>
+          <div id="level-modal-danger" style="font-size:28px;"></div>
+          <div id="level-modal-danger-bar" style="height:5px;background:rgba(0,255,0,0.1);margin-top:6px;"><div id="level-modal-danger-fill" style="height:100%;transition:width 0.8s ease;"></div></div>
+        </div>
+        <div style="background:rgba(0,10,0,0.8);border:1px solid rgba(0,255,0,0.15);padding:10px 14px;">
+          <div style="font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);margin-bottom:4px;">PERSONNEL STATUS</div>
+          <div id="level-modal-pop" style="font-size:20px;color:#ff0;"></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);margin-bottom:6px;">ENTITY PRESENCE</div>
+        <div id="level-modal-entities" style="font-size:18px;color:#f00;text-shadow:0 0 8px #f00;"></div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);margin-bottom:6px;">AREA BRIEFING</div>
+        <div id="level-modal-desc" style="font-size:16px;color:rgba(0,255,0,0.8);line-height:1.8;"></div>
+      </div>
+
+      <div style="border-top:1px solid rgba(0,255,0,0.1);padding-top:14px;">
+        <div style="font-size:11px;letter-spacing:3px;color:rgba(0,255,0,0.4);margin-bottom:8px;">CLASSIFIED FIELD NOTES</div>
+        <div id="level-modal-notes" style="font-size:15px;color:rgba(0,255,0,0.65);line-height:1.8;"></div>
+      </div>
+
+      <div id="level-modal-footer" style="margin-top:16px;font-size:11px;letter-spacing:2px;color:rgba(0,255,0,0.25);border-top:1px solid rgba(0,255,0,0.08);padding-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <button onclick="closeAdmin()" style="position:absolute;top:16px;right:16px;background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:20px;padding:4px 12px;cursor:pointer;">✕ CLOSE</button>
+  <div style="font-size:clamp(24px,5vw,60px);letter-spacing:6px;color:#f00;text-shadow:0 0 20px #f00;margin-bottom:24px;animation:entityShake 0.2s infinite;">
+    ⚠ ADMIN OVERRIDE — LEVEL 5 CLEARANCE ⚠
+  </div>
+  <div id="admin-content" style="font-size:16px;line-height:2;color:#0f0;max-width:600px;text-align:left;"></div>
+  <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+    <button onclick="adminAction('purge')" style="background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">PURGE LOGS</button>
+    <button onclick="adminAction('entities')" style="background:transparent;border:1px solid #ff0;color:#ff0;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">ENTITY SWEEP</button>
+    <button onclick="adminAction('threshold')" style="background:transparent;border:1px solid #0ff;color:#0ff;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">FORCE THRESHOLD</button>
+    <button onclick="adminAction('evacuate')" style="background:transparent;border:1px solid #f00;color:#f00;font-family:'VT323',monospace;font-size:18px;padding:6px 18px;cursor:pointer;">EVACUATE</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  LOGIN SYSTEM
+// ════════════════════════════════════════════════
+
+// Valid credentials (any of these work — it's meant to feel discoverable)
+const VALID_CREDS = [
+  { user: 'admin',      pass: 'threshold', auth: 'Ψ-198901' },
+  { user: 'dr.hayes',   pass: 'level0',    auth: 'Ψ-198902' },
+  { user: 'operator',   pass: 'async1989', auth: 'Ψ-198903' },
+  { user: 'guest',      pass: 'backrooms',  auth: 'Ψ-000000' }, // easy guest
+];
+
+let loginAttempts = 0;
+let loginLocked = false;
+let loginTypingDone = false;
+
+const loginPre = document.getElementById('login-terminal-pre');
+
+const LOGIN_BOOT_LINES = [
+  { t: 120,  c: 'rgba(0,255,0,0.5)', m: 'ASYNC SECURE TERMINAL v3.1.9' },
+  { t: 280,  c: 'rgba(0,255,0,0.4)', m: 'COPYRIGHT 1989 ASYNC RESEARCH CORP.' },
+  { t: 480,  c: 'rgba(0,255,0,0.3)', m: '─────────────────────────────────────' },
+  { t: 680,  c: '#0f0',              m: 'ESTABLISHING ENCRYPTED CHANNEL...' },
+  { t: 960,  c: '#0f0',              m: '  NODE ALPHA-7: CONNECTED' },
+  { t: 1140, c: '#0f0',              m: '  AES-Ψ HANDSHAKE: COMPLETE' },
+  { t: 1340, c: '#0f0',              m: '  TUNNEL INTEGRITY: 100%' },
+  { t: 1560, c: 'rgba(0,255,0,0.4)', m: '─────────────────────────────────────' },
+  { t: 1780, c: '#ff0',              m: '⚠  CLASSIFIED SYSTEM — AUTHORIZED USERS ONLY' },
+  { t: 2050, c: 'rgba(0,255,0,0.4)', m: '─────────────────────────────────────' },
+  { t: 2300, c: '#0f0',              m: 'ENTER CREDENTIALS TO PROCEED.' },
+];
+
+function loginTypeLine(index) {
+  if (index >= LOGIN_BOOT_LINES.length) {
+    loginTypingDone = true;
+    // add cursor line
+    const cur = document.createElement('div');
+    cur.className = 'login-prompt-line login-cursor';
+    cur.style.color = 'rgba(0,255,0,0.5)';
+    cur.textContent = '> ';
+    loginPre.appendChild(cur);
+    // show fields
+    setTimeout(() => {
+      document.getElementById('login-fields').style.opacity = '1';
+      document.getElementById('login-user').focus();
+    }, 300);
+    return;
+  }
+  const line = LOGIN_BOOT_LINES[index];
+  setTimeout(() => {
+    const el = document.createElement('div');
+    el.className = 'login-prompt-line';
+    el.style.color = line.c;
+    el.textContent = line.m;
+    loginPre.appendChild(el);
+    loginTypeLine(index + 1);
+  }, index === 0 ? line.t : LOGIN_BOOT_LINES[index].t - LOGIN_BOOT_LINES[index-1].t);
+}
+
+// Login clock
+function updateLoginClock() {
+  const el = document.getElementById('login-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-US',{hour12:false}) + ' EST';
+}
+updateLoginClock();
+setInterval(updateLoginClock, 1000);
+
+// Start typing after small delay
+setTimeout(() => loginTypeLine(0), 400);
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    attemptLogin();
+  }
+});
+
+function attemptLogin() {
+  if (loginLocked) return;
+
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value.trim().toLowerCase();
+  const auth = document.getElementById('login-auth').value.trim().toUpperCase();
+  const errEl = document.getElementById('login-error');
+  const attEl = document.getElementById('login-attempts');
+
+  // Check credentials
+  const valid = VALID_CREDS.find(c =>
+    c.user === user && c.pass === pass && c.auth.toUpperCase() === auth
+  );
+
+  if (valid) {
+    errEl.style.color = '#0f0';
+    errEl.textContent = 'AUTHENTICATION SUCCESSFUL — LOADING THRESHOLD TERMINAL...';
+    loginAttempts = 0;
+
+    // Append success lines to terminal
+    ['ACCESS GRANTED.', 'LOADING ASYNC FACILITY TERMINAL...', 'INITIATING THRESHOLD BOOT SEQUENCE...']
+      .forEach((m, i) => {
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.style.color = i === 0 ? '#0ff' : '#0f0';
+          el.textContent = '> ' + m;
+          loginPre.appendChild(el);
+        }, i * 300);
+      });
+
+    setTimeout(() => {
+      const ls = document.getElementById('login-screen');
+      ls.classList.add('fade-out');
+      setTimeout(() => {
+        ls.style.display = 'none';
+        // Now start boot
+        requestAnimationFrame(bootLoop);
+      }, 800);
+    }, 1200);
+
+  } else {
+    loginAttempts++;
+    const remain = 5 - loginAttempts;
+
+    if (loginAttempts >= 5) {
+      loginLocked = true;
+      errEl.style.color = '#f00';
+      errEl.textContent = '⚠ ACCOUNT LOCKED — SECURITY TEAM NOTIFIED';
+      attEl.textContent = 'ATTEMPTS EXCEEDED — TERMINAL DISABLED';
+      document.getElementById('login-submit').disabled = true;
+      document.getElementById('login-submit').style.opacity = '0.3';
+
+      // shake the box
+      const box = document.getElementById('login-box');
+      box.style.animation = 'entityShake 0.15s 8';
+      setTimeout(() => box.style.animation = '', 1500);
+
+      // After 10s, quietly unlock (it's a game, let them try again)
+      setTimeout(() => {
+        loginLocked = false;
+        loginAttempts = 0;
+        errEl.textContent = '';
+        attEl.textContent = 'LOCKOUT EXPIRED — TRY AGAIN';
+        document.getElementById('login-submit').disabled = false;
+        document.getElementById('login-submit').style.opacity = '1';
+      }, 10000);
+
+    } else {
+      const msgs = [
+        'INVALID CREDENTIALS — ACCESS DENIED',
+        'AUTHENTICATION FAILURE — CHECK PASSKEY',
+        '⚠ WARNING: REPEATED FAILURE DETECTED',
+        '⚠ SECURITY ALERT — ONE ATTEMPT REMAINING',
+      ];
+      errEl.style.color = '#f00';
+      errEl.textContent = msgs[Math.min(loginAttempts-1, msgs.length-1)];
+      attEl.textContent = `FAILED ATTEMPTS: ${loginAttempts} / 5  —  ${remain} REMAINING`;
+
+      // Shake inputs
+      document.querySelectorAll('.login-field').forEach(f => {
+        f.style.animation = 'none';
+        f.offsetHeight;
+        f.style.borderColor = 'rgba(255,0,0,0.6)';
+        setTimeout(() => f.style.borderColor = 'rgba(0,255,0,0.2)', 1000);
+      });
+    }
+
+    // Clear password
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-auth').value = '';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  BOOT ANIMATION SYSTEM
+// ════════════════════════════════════════════════
+
+const bootCanvas = document.getElementById('boot-canvas');
+const bootCtx = bootCanvas.getContext('2d');
+const bootTerminal = document.getElementById('boot-terminal');
+const bootLogo = document.getElementById('boot-logo');
+const bootBigText = document.getElementById('boot-big-text');
+const progressBar = document.getElementById('boot-progress-bar');
+
+let bootAF;
+let bootPhase = 0;
+let bootStartTime = 0;
+const BOOT_DURATION = 8000; // 8 seconds — cinematic but not punishing
+
+function resizeBootCanvas() {
+  bootCanvas.width = window.innerWidth;
+  bootCanvas.height = window.innerHeight;
+}
+resizeBootCanvas();
+window.addEventListener('resize', resizeBootCanvas);
+
+// Boot particles
+const bootParticles = [];
+const bootArcs = [];
+
+function initBootParticles() {
+  for (let i = 0; i < 120; i++) {
+    bootParticles.push({
+      x: Math.random() * bootCanvas.width,
+      y: Math.random() * bootCanvas.height,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      life: Math.random(),
+      maxLife: 0.5 + Math.random() * 1.5,
+      r: Math.random() * 2,
+      color: Math.random() > 0.6 ? '#0f0' : Math.random() > 0.5 ? '#ff0' : '#0ff'
+    });
+  }
+}
+initBootParticles();
+
+function updateBootParticles(dt, intensity) {
+  bootParticles.forEach(p => {
+    p.x += p.vx * intensity;
+    p.y += p.vy * intensity;
+    p.life -= dt * 0.4;
+    if (p.life <= 0) {
+      p.x = Math.random() * bootCanvas.width;
+      p.y = Math.random() * bootCanvas.height;
+      p.life = p.maxLife;
+      p.vx = (Math.random() - 0.5) * 1.5 * intensity;
+      p.vy = (Math.random() - 0.5) * 1.5 * intensity;
+    }
+    if (p.x < 0) p.x = bootCanvas.width;
+    if (p.x > bootCanvas.width) p.x = 0;
+    if (p.y < 0) p.y = bootCanvas.height;
+    if (p.y > bootCanvas.height) p.y = 0;
+  });
+}
+
+function drawBootParticles(alpha) {
+  bootParticles.forEach(p => {
+    const a = (p.life / p.maxLife) * alpha;
+    bootCtx.beginPath();
+    bootCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    bootCtx.fillStyle = p.color.replace(')', `,${a})`).replace('rgb(', 'rgba(').replace('#0f0', `rgba(0,255,0,${a})`).replace('#ff0', `rgba(255,255,0,${a})`).replace('#0ff', `rgba(0,255,255,${a})`);
+    bootCtx.fill();
+  });
+}
+
+function drawMagneticRings(t, phase) {
+  const cx = bootCanvas.width / 2;
+  const cy = bootCanvas.height / 2;
+  const numRings = 6;
+  for (let i = 0; i < numRings; i++) {
+    const r = 60 + i * 55 + Math.sin(t * 0.001 + i) * 20;
+    const alpha = (0.1 + 0.15 * Math.sin(t * 0.002 + i * 0.7)) * Math.min(phase, 1);
+    bootCtx.beginPath();
+    bootCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    bootCtx.strokeStyle = i % 2 === 0 ? `rgba(0,255,0,${alpha})` : `rgba(255,255,0,${alpha * 0.6})`;
+    bootCtx.lineWidth = 1 + Math.sin(t * 0.003 + i) * 0.5;
+    bootCtx.stroke();
+
+    // Dots on ring
+    for (let d = 0; d < 8; d++) {
+      const angle = (d / 8) * Math.PI * 2 + t * 0.0005 * (i % 2 === 0 ? 1 : -1);
+      const dx = cx + Math.cos(angle) * r;
+      const dy = cy + Math.sin(angle) * r;
+      bootCtx.beginPath();
+      bootCtx.arc(dx, dy, 2, 0, Math.PI * 2);
+      bootCtx.fillStyle = `rgba(0,255,255,${alpha * 1.5})`;
+      bootCtx.fill();
+    }
+  }
+}
+
+function drawElectricArc(x1, y1, x2, y2, segments, alpha, color) {
+  bootCtx.beginPath();
+  bootCtx.moveTo(x1, y1);
+  const steps = segments;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const mx = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 40 * (1 - Math.abs(t - 0.5) * 2);
+    const my = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 40 * (1 - Math.abs(t - 0.5) * 2);
+    bootCtx.lineTo(mx, my);
+  }
+  bootCtx.strokeStyle = color || `rgba(0,255,255,${alpha})`;
+  bootCtx.lineWidth = 1;
+  bootCtx.shadowBlur = 8;
+  bootCtx.shadowColor = color || '#0ff';
+  bootCtx.stroke();
+  bootCtx.shadowBlur = 0;
+}
+
+function drawCRTStatic(intensity) {
+  const iData = bootCtx.createImageData(bootCanvas.width, bootCanvas.height);
+  const data = iData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (Math.random() < intensity) {
+      const v = Math.random() * 200;
+      data[i] = 0; data[i+1] = v; data[i+2] = 0; data[i+3] = 180;
+    }
+  }
+  bootCtx.putImageData(iData, 0, 0);
+}
+
+// Boot terminal lines — compressed to 8s, lore-accurate
+const bootLines = [
+  {t:80,   txt:'ASYNC RESEARCH INSTITUTE — LPMD TERMINAL v3.1.9', col:'#0ff'},
+  {t:220,  txt:'SAN JOSE, CA FACILITY — PROJECT KV31 — CLASSIFIED', col:'rgba(0,255,0,0.5)'},
+  {t:380,  txt:'', col:'#0f0'},
+  {t:460,  txt:'INITIALIZING BIOS... OK', col:'#0f0'},
+  {t:580,  txt:'CHECKING MEMORY BANKS... 640K OK', col:'#0f0'},
+  {t:700,  txt:'LOADING LPMD KERNEL v7.3...', col:'#ff0'},
+  {t:820,  txt:'  THRESHOLD DRIVER: LOADED', col:'#0f0'},
+  {t:920,  txt:'  ENTITY DETECTION ARRAY: LOADED', col:'#0f0'},
+  {t:1020, txt:'  KV31 PERSONNEL UPLINK: LOADED', col:'#0f0'},
+  {t:1120, txt:'', col:'#0f0'},
+  {t:1200, txt:'WARNING: LIFEFORM SIGNATURES DETECTED IN COMPLEX', col:'#f00'},
+  {t:1320, txt:'WARNING: THRESHOLD STABILITY AT 67.3% — MONITORING', col:'#f00'},
+  {t:1460, txt:'', col:'#0f0'},
+  {t:1540, txt:'LOADING PERSONNEL DATABASE...', col:'#0f0'},
+  {t:1680, txt:'  ACTIVE KV31 STAFF: 47', col:'#0f0'},
+  {t:1800, txt:'  MISSING: PETER TENCH (MAR 1 1990) — STATUS: CLASSIFIED', col:'#f00'},
+  {t:1940, txt:'  CASUALTIES: 63 (OCT 17 1989 — LOMA PRIETA EVENT)', col:'#f00'},
+  {t:2080, txt:'', col:'#0f0'},
+  {t:2160, txt:'SCANNING COMPLEX FOR LIFEFORM ACTIVITY...', col:'#ff0'},
+  {t:2320, txt:'  CAMERA 5: MOTION DETECTED — ROOM 14C VICINITY', col:'#f00'},
+  {t:2480, txt:'  ACOUSTIC ANOMALY: VOCAL MIMICRY PATTERN SUSPECTED', col:'#f00'},
+  {t:2620, txt:'  LIFEFORM COUNT: UNKNOWN — CLASSIFICATION: HOSTILE', col:'#f00'},
+  {t:2760, txt:'', col:'#0f0'},
+  {t:2840, txt:'ESTABLISHING UPLINK TO ASYNC MAINFRAME...', col:'#0ff'},
+  {t:2980, txt:'  ENCRYPTED CHANNEL: ESTABLISHED', col:'#0f0'},
+  {t:3100, txt:'  KV31 TELEMETRY STREAM: ACTIVE', col:'#0f0'},
+  {t:3220, txt:'  FOUND FOOTAGE ARCHIVE: 12 TAPES ACCESSIBLE', col:'#0f0'},
+  {t:3360, txt:'', col:'#0f0'},
+  {t:3440, txt:'ALL SYSTEMS NOMINAL. THRESHOLD IS OPEN.', col:'#0ff'},
+  {t:3580, txt:'', col:'#0f0'},
+  {t:3660, txt:'████████████████████████████████████████', col:'#ff0'},
+  {t:3780, txt:'███   THRESHOLD OPENING SEQUENCE INITIATED   ███', col:'#ff0'},
+  {t:3900, txt:'████████████████████████████████████████', col:'#ff0'},
+  {t:4020, txt:'', col:'#0f0'},
+  {t:4100, txt:'LPMD FIELD: POWERING UP...', col:'#f00'},
+  {t:4320, txt:'COUNTING DOWN...', col:'#ff0'},
+  {t:4640, txt:'  3...', col:'#f00'},
+  {t:5100, txt:'  2...', col:'#f00'},
+  {t:5700, txt:'  1...', col:'#f00'},
+];
+
+let shownBootLines = new Set();
+let bootLineEls = [];
+
+function renderBootLine(line) {
+  const el = document.createElement('div');
+  el.style.cssText = `color:${line.col};line-height:1.5;white-space:pre;`;
+  if (line.txt === '') {
+    el.innerHTML = '&nbsp;';
+  } else {
+    el.textContent = line.txt;
+  }
+  bootTerminal.appendChild(el);
+  bootLineEls.push(el);
+  bootTerminal.scrollTop = bootTerminal.scrollHeight;
+}
+
+let lastBootTime = 0;
+let bootDone = false;
+let bootShakeX = 0, bootShakeY = 0;
+
+function bootLoop(timestamp) {
+  if (!bootStartTime) bootStartTime = timestamp;
+  const elapsed = timestamp - bootStartTime;
+  const progress = Math.min(elapsed / BOOT_DURATION, 1);
+
+  // Progress bar
+  progressBar.style.width = (progress * 100) + '%';
+
+  // Show terminal lines at correct times
+  bootLines.forEach((line, i) => {
+    if (elapsed >= line.t && !shownBootLines.has(i)) {
+      shownBootLines.add(i);
+      renderBootLine(line);
+    }
+  });
+
+  // Show logo at 1s
+  if (elapsed > 800) bootLogo.style.opacity = '1';
+
+  // Canvas drawing
+  const w = bootCanvas.width, h = bootCanvas.height;
+  const cx = w / 2, cy = h / 2;
+
+  // Phase 1: 0-2s — static + rings
+  // Phase 2: 2-4s — intense rings + particles
+  // Phase 3: 4-6s — electric arcs
+  // Phase 4: 6-7s — countdown buildup + shake
+  // Phase 5: 7-8s — THRESHOLD OPEN
+
+  const phase1 = Math.min(elapsed / 2000, 1);
+  const phase2 = Math.max(0, Math.min((elapsed - 2000) / 2000, 1));
+  const phase3 = Math.max(0, Math.min((elapsed - 4000) / 2000, 1));
+  const phase4 = Math.max(0, Math.min((elapsed - 6000) / 1000, 1));
+  const phase5 = Math.max(0, Math.min((elapsed - 7000) / 1000, 1));
+
+  // Shake in later phases
+  if (phase4 > 0) {
+    bootShakeX = (Math.random() - 0.5) * phase4 * 8;
+    bootShakeY = (Math.random() - 0.5) * phase4 * 8;
+    bootCanvas.style.transform = `translate(${bootShakeX}px,${bootShakeY}px)`;
+  }
+
+  bootCtx.clearRect(0, 0, w, h);
+  bootCtx.fillStyle = '#000';
+  bootCtx.fillRect(0, 0, w, h);
+
+  // Background glow
+  const bgGrad = bootCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * 0.6);
+  bgGrad.addColorStop(0, `rgba(0,30,0,${0.3 * phase1})`);
+  bgGrad.addColorStop(0.5, `rgba(0,10,0,${0.15 * phase2})`);
+  bgGrad.addColorStop(1, 'transparent');
+  bootCtx.fillStyle = bgGrad;
+  bootCtx.fillRect(0, 0, w, h);
+
+  // CRT static
+  if (phase1 < 0.8 || (Math.random() < 0.05 * phase4)) {
+    drawCRTStatic(0.02 * (1 - phase1) + 0.05 * phase4);
+  }
+
+  // Magnetic rings
+  drawMagneticRings(elapsed, phase1 + phase2 * 0.5);
+
+  // Extra rings in phase 3
+  if (phase2 > 0) {
+    for (let i = 0; i < 3; i++) {
+      const r = 20 + i * 30 + Math.sin(elapsed * 0.003 + i) * 15;
+      const alpha = phase2 * 0.4;
+      bootCtx.beginPath();
+      bootCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      bootCtx.strokeStyle = `rgba(255,255,0,${alpha})`;
+      bootCtx.lineWidth = 2;
+      bootCtx.stroke();
+    }
+  }
+
+  // Particles
+  updateBootParticles(0.016, 1 + phase2 * 2);
+  drawBootParticles(phase1 * 0.8 + phase2 * 0.4);
+
+  // Electric arcs in phase 3
+  if (phase3 > 0 && Math.random() < 0.3 + phase3 * 0.4) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 200;
+    const x2 = cx + Math.cos(angle) * dist;
+    const y2 = cy + Math.sin(angle) * dist;
+    drawElectricArc(cx, cy, x2, y2, 8 + Math.floor(Math.random() * 6), 0.6 + phase3 * 0.4,
+      Math.random() > 0.5 ? `rgba(0,255,255,${0.4 + phase3 * 0.5})` : `rgba(255,255,0,${0.3 + phase3 * 0.4})`);
+  }
+
+  // Scanlines
+  for (let y = 0; y < h; y += 3) {
+    bootCtx.fillStyle = `rgba(0,0,0,0.15)`;
+    bootCtx.fillRect(0, y, w, 1);
+  }
+
+  // Phase 4 — COUNTDOWN FLASH
+  if (phase4 > 0) {
+    const flashAlpha = Math.sin(elapsed * 0.015) * 0.5 + 0.5;
+    bootCtx.fillStyle = `rgba(255,0,0,${phase4 * flashAlpha * 0.08})`;
+    bootCtx.fillRect(0, 0, w, h);
+
+    // Cross-hairs
+    bootCtx.strokeStyle = `rgba(255,0,0,${phase4 * 0.3})`;
+    bootCtx.lineWidth = 1;
+    bootCtx.setLineDash([5, 5]);
+    bootCtx.beginPath();
+    bootCtx.moveTo(cx, 0); bootCtx.lineTo(cx, h);
+    bootCtx.moveTo(0, cy); bootCtx.lineTo(w, cy);
+    bootCtx.stroke();
+    bootCtx.setLineDash([]);
+  }
+
+  // Phase 5 — THRESHOLD OPEN
+  if (phase5 > 0) {
+    bootBigText.style.opacity = phase5.toString();
+    bootBigText.style.color = `hsl(${60 - phase5 * 60},100%,60%)`;
+    bootBigText.style.textShadow = `0 0 ${20 + phase5 * 60}px currentColor, 0 0 ${phase5 * 120}px currentColor`;
+    bootBigText.innerHTML = phase5 < 0.4
+      ? `<span style="letter-spacing:8px">THRESHOLD<br>OPENING</span>`
+      : `<span style="letter-spacing:8px;color:#ff0;text-shadow:0 0 40px #ff0,0 0 80px #ff0,0 0 160px #ff0;">T H R E S H O L D<br>O P E N</span>`;
+
+    // White flash at peak
+    const flashPeak = Math.max(0, (phase5 - 0.7) / 0.3);
+    bootCtx.fillStyle = `rgba(255,255,200,${flashPeak * 0.6})`;
+    bootCtx.fillRect(0, 0, w, h);
+  }
+
+  if (progress >= 1 && !bootDone) {
+    bootDone = true;
+    // Flash white then reveal main UI
+    setTimeout(() => {
+      bootCanvas.style.transform = '';
+      document.getElementById('boot-screen').style.transition = 'opacity 0.6s';
+      document.getElementById('boot-screen').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('boot-screen').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        initMainUI();
+      }, 700);
+    }, 300);
+    return;
+  }
+
+  bootAF = requestAnimationFrame(bootLoop);
+}
+
+// boot starts after login — triggered by attemptLogin()
+
+function skipBoot() {
+  cancelAnimationFrame(bootAF);
+  bootDone = true;
+  document.getElementById('boot-screen').style.transition = 'opacity 0.4s';
+  document.getElementById('boot-screen').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('boot-screen').style.display = 'none';
+    document.getElementById('main-ui').style.display = 'block';
+    initMainUI();
+  }, 400);
+}
+
+// ════════════════════════════════════════════════
+//  AUDIO SYSTEM — KV31 RADIO COMMS (MULTI-VOICE)
+// ════════════════════════════════════════════════
+
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let radioOn = false;
+let humOn = false;
+let humGain = null;
+let humOsc = null;
+let radioChatterTimer = null;
+let _cachedVoices = [];
+let _radioStaticSrcGlobal = null; // declared early to avoid reference errors
+
+// Authentic Kane Pixels style — conversational, mundane, then escalating
+// Format: [ { speaker, line }, ... ] — each entry is one transmission
+// Exchanges are groups that play back-to-back with short gaps, like real radio
+const RADIO_EXCHANGES = [
+
+  // ── Routine check-ins ──
+  [
+    { spk:'MARVIN', line:"This is Marvin, mic test, one two three. You reading me okay?" },
+    { spk:'BASE',   line:"Yeah, we read you loud and clear Marvin. You're good to go." },
+    { spk:'MARVIN', line:"Copy that. We're heading in now." },
+  ],
+  [
+    { spk:'MARK',   line:"Base, this is Mark. We have just reached 14D. Uh, there are no visible signs of Marvin's friend." },
+    { spk:'MARVIN', line:"That is absolutely not the name we're going with." },
+    { spk:'MARK',   line:"Well you better start working on a new one." },
+    { spk:'BASE',   line:"Just focus on going down the center, right, and around those two points of interest." },
+  ],
+  [
+    { spk:'KIM',    line:"Team Alpha, this is base. Do you read us?" },
+    { spk:'MARK',   line:"Yes, base, this is Mark. I read you." },
+    { spk:'KIM',    line:"Copy. How's the suit integrity looking on your end?" },
+    { spk:'MARK',   line:"All green. We're about twenty meters past the outpost." },
+  ],
+  [
+    { spk:'GEORGE', line:"Hey Marvin, how much tape do we have left on the roll?" },
+    { spk:'MARVIN', line:"Uh... maybe forty meters? We should be fine." },
+    { spk:'GEORGE', line:"Okay. Let me know when we're at the end." },
+  ],
+
+  // ── Slightly tense ──
+  [
+    { spk:'BASE',   line:"All units, we're picking up something on camera five. Can you confirm your position?" },
+    { spk:'MARVIN', line:"We're in sector B, near the end of the red tape. Nothing unusual on our end." },
+    { spk:'BASE',   line:"Copy. Just keep your eyes open. Something moved on camera five about two minutes ago." },
+    { spk:'MARVIN', line:"Understood. We'll keep comms open." },
+  ],
+  [
+    { spk:'MARK',   line:"Hey, does anyone else hear that? There's like... a humming sound coming from the ceiling." },
+    { spk:'GEORGE', line:"The fluorescents have been weird down here all day. Probably just that." },
+    { spk:'MARK',   line:"Yeah, maybe. It's getting louder though." },
+    { spk:'BASE',   line:"Mark, George, start heading back to the outpost. Don't rush, just turn around." },
+  ],
+  [
+    { spk:'KIM',    line:"Randall, check on positions four and three for me." },
+    { spk:'RANDALL',line:"One... two... five... seven. Hang on." },
+    { spk:'KIM',    line:"Check four and three." },
+    { spk:'RANDALL',line:"Four and three are... yeah they look fine. All good." },
+  ],
+  [
+    { spk:'BASE',   line:"We need to double check the suit seals before anyone goes past room 14C." },
+    { spk:'MARVIN', line:"Already done on our end. We checked before we left the outpost." },
+    { spk:'BASE',   line:"Good. And Marvin — do not approach the pit area without checking in first." },
+    { spk:'MARVIN', line:"Yeah, I know. We know. Trust me." },
+  ],
+
+  // ── Unsettled / escalating ──
+  [
+    { spk:'MARVIN', line:"Hey, base. I'm hearing something. It sounds like... someone calling for help. Down the hallway." },
+    { spk:'BASE',   line:"Marvin, hold your position. Do not follow the sound." },
+    { spk:'MARVIN', line:"It really sounds like a person. Like someone's in trouble." },
+    { spk:'BASE',   line:"Marvin. Stop. Do not follow it. Come back to the tape line right now." },
+  ],
+  [
+    { spk:'MARVIN', line:"...That's not a person." },
+    { spk:'BASE',   line:"Marvin? Marvin come in. What's your status?" },
+    { spk:'MARVIN', line:"That is NOT a person! Get the rope, get the rope ready—" },
+    { spk:'BASE',   line:"All units stand by. Team Alpha, get a rope to Marvin's last position NOW." },
+  ],
+  [
+    { spk:'MARK',   line:"Base, we need immediate armed support at Room 14C. My team and I are being held at gunpoint by a hostile. I repeat—" },
+    { spk:'BASE',   line:"Mark, say again? Say again your last." },
+    { spk:'MARK',   line:"Hostile individual, Room 14C, armed, please send immediate armed support to Room 14C—" },
+    { spk:'BASE',   line:"Copy. All units, all units, armed response to 14C immediately." },
+  ],
+  [
+    { spk:'MARVIN', line:"Clyde, come in. We need help. We need immediate help in 14C." },
+    { spk:'BASE',   line:"Copy Marvin. Armed response is en route. What's your status?" },
+    { spk:'MARVIN', line:"Mark's down. He's been shot. I need medical down here right now." },
+    { spk:'BASE',   line:"Medical is coming. Keep pressure on it. Stay on comms." },
+  ],
+
+  // ── Procedural / lore flavor ──
+  [
+    { spk:'BASE',   line:"Just a reminder for all KV31 personnel — the Department of Energy tour is scheduled for May eighth through tenth. Keep the outpost presentable." },
+    { spk:'MARVIN', line:"Roger that. Are they actually coming inside the complex?" },
+    { spk:'BASE',   line:"Just the outpost section. Nobody goes past the first corridor." },
+    { spk:'MARVIN', line:"Good. That's good." },
+  ],
+  [
+    { spk:'CLYDE',  line:"Hi, I'm calling from the Async Research Institute in San Jose, California. I'm trying to reach my supervisor, Ivan Beck." },
+    { spk:'BASE',   line:"Clyde, this is an internal line. Try the main office." },
+    { spk:'CLYDE',  line:"Right, sorry. Wrong channel." },
+  ],
+  [
+    { spk:'GEORGE', line:"Hey, Miller's report came in. He's saying the null zones might be connected to some kind of spatial resonance field." },
+    { spk:'MARVIN', line:"Is that the same guy who said the carpet was load bearing?" },
+    { spk:'GEORGE', line:"...yes." },
+    { spk:'MARVIN', line:"Cool. Yeah. We'll look into it." },
+  ],
+  [
+    { spk:'BASE',   line:"All teams, the rover sweep of room 14D is complete. Path is confirmed clear. You're good to proceed." },
+    { spk:'MARK',   line:"Copy. We're starting the walkway installation now." },
+    { spk:'BASE',   line:"Good. And Mark — if you reach the door at the far end, do not open it without checking in first." },
+    { spk:'MARK',   line:"Understood. We'll call it in." },
+  ],
+  [
+    { spk:'BASE',   line:"This is base to all units. Peter Tench has not checked in for his scheduled update. Can anyone confirm his last known position?" },
+    { spk:'GEORGE', line:"He was with us in the branching corridor off sector B. We lost track of him about... I don't know, maybe forty minutes ago." },
+    { spk:'BASE',   line:"Forty minutes. Okay. All teams, start heading back. Do not split up. Over." },
+    { spk:'MARVIN', line:"Copy. Heading back now. Peter — Pete, if you can hear this, come back to the main corridor." },
+  ],
+];
+
+// Voice personalities — rate/pitch tweaks per speaker
+const VOICE_STYLES = {
+  MARVIN:  { rate: 0.80, pitch: 0.30 },   // deep gruff field researcher
+  MARK:    { rate: 0.86, pitch: 0.35 },   // slightly tense
+  GEORGE:  { rate: 0.76, pitch: 0.22 },   // very deep, calm
+  KIM:     { rate: 0.88, pitch: 0.95 },   // female coordinator
+  BASE:    { rate: 0.74, pitch: 0.18 },   // deepest — base station operator
+  CLYDE:   { rate: 0.84, pitch: 0.30 },
+  RANDALL: { rate: 0.82, pitch: 0.28 },
+};
+
+function ensureAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+// ── Authentic walkie-talkie PTT beep ──
+// Replicates the characteristic two-tone chirp of a real PTT open/close
+function playPTTBeep(open) {
+  ensureAudioCtx();
+  const now = audioCtx.currentTime;
+
+  if (open) {
+    // PTT press: short rising chirp + static burst
+    // Tone 1: 1050 Hz click
+    const o1 = audioCtx.createOscillator();
+    const g1 = audioCtx.createGain();
+    o1.type = 'square';
+    o1.frequency.setValueAtTime(1050, now);
+    o1.frequency.linearRampToValueAtTime(1400, now + 0.06);
+    g1.gain.setValueAtTime(0, now);
+    g1.gain.linearRampToValueAtTime(0.18, now + 0.008);
+    g1.gain.linearRampToValueAtTime(0, now + 0.07);
+    o1.connect(g1); g1.connect(audioCtx.destination);
+    o1.start(now); o1.stop(now + 0.08);
+
+    // Static burst before voice
+    const bufLen = Math.floor(audioCtx.sampleRate * 0.08);
+    const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const env = Math.min(i / (bufLen * 0.1), 1) * Math.max(0, 1 - i / bufLen * 1.5);
+      data[i] = (Math.random() * 2 - 1) * env * 0.3;
+    }
+    const bpf = audioCtx.createBiquadFilter();
+    bpf.type = 'bandpass'; bpf.frequency.value = 2000; bpf.Q.value = 0.8;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const sg = audioCtx.createGain(); sg.gain.value = 0.4;
+    src.connect(bpf); bpf.connect(sg); sg.connect(audioCtx.destination);
+    src.start(now + 0.05);
+
+  } else {
+    // PTT release: short falling blip + tail static
+    const o2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    o2.type = 'square';
+    o2.frequency.setValueAtTime(1200, now);
+    o2.frequency.linearRampToValueAtTime(800, now + 0.05);
+    g2.gain.setValueAtTime(0.15, now);
+    g2.gain.linearRampToValueAtTime(0, now + 0.06);
+    o2.connect(g2); g2.connect(audioCtx.destination);
+    o2.start(now); o2.stop(now + 0.07);
+
+    // Tail static squelch
+    const bufLen2 = Math.floor(audioCtx.sampleRate * 0.06);
+    const buf2 = audioCtx.createBuffer(1, bufLen2, audioCtx.sampleRate);
+    const data2 = buf2.getChannelData(0);
+    for (let i = 0; i < bufLen2; i++) {
+      const env = Math.max(0, 1 - i / bufLen2 * 2);
+      data2[i] = (Math.random() * 2 - 1) * env * 0.25;
+    }
+    const bpf2 = audioCtx.createBiquadFilter();
+    bpf2.type = 'bandpass'; bpf2.frequency.value = 1800; bpf2.Q.value = 0.7;
+    const src2 = audioCtx.createBufferSource();
+    src2.buffer = buf2;
+    const sg2 = audioCtx.createGain(); sg2.gain.value = 0.35;
+    src2.connect(bpf2); bpf2.connect(sg2); sg2.connect(audioCtx.destination);
+    src2.start(now);
+  }
+}
+
+// ── Radio voice processing — makes TTS sound like walkie-talkie ──
+// We route speech through a bandpass + distortion + compression chain
+// by playing it to a hidden audio element and capturing via WebAudio
+// (Can't process TTS directly on most browsers, so we use pitch/rate tricks
+//  and play the squelch noise simultaneously to sell the illusion)
+function playRadioStaticLoop(durationMs) {
+  ensureAudioCtx();
+  const now = audioCtx.currentTime;
+  const dur = durationMs / 1000;
+
+  // Background carrier hiss during transmission
+  const bufLen = Math.floor(audioCtx.sampleRate * dur);
+  const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) {
+    // Noise with periodic amplitude variation (breathing)
+    const t2 = i / audioCtx.sampleRate;
+    const env = 0.012 + 0.004 * Math.sin(t2 * 6.28 * 3);
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+
+  const bpf = audioCtx.createBiquadFilter();
+  bpf.type = 'bandpass'; bpf.frequency.value = 1400; bpf.Q.value = 1.2;
+
+  const dist = audioCtx.createWaveShaper();
+  const curve = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const x = (i * 2) / 256 - 1;
+    curve[i] = ((Math.PI + 60) * x) / (Math.PI + 60 * Math.abs(x));
+  }
+  dist.curve = curve;
+
+  const vol = audioCtx.createGain();
+  vol.gain.value = parseFloat(document.getElementById('radio-vol')?.value || 0.7) * 0.08;
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(bpf); bpf.connect(dist); dist.connect(vol); vol.connect(audioCtx.destination);
+  src.start(now);
+  return src;
+}
+
+// Chrome needs this event to populate voices
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    _cachedVoices = window.speechSynthesis.getVoices();
+  };
+}
+
+function pickVoice(wantFemale) {
+  const voices = _cachedVoices.length ? _cachedVoices : window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const eng = voices.filter(v => /en/i.test(v.lang));
+  if (wantFemale) {
+    return eng.find(v => /zira|hazel|karen|susan|kate|victoria|samantha|female/i.test(v.name))
+      || eng[0] || voices[0];
+  }
+  // Deep male voice priority list — checked in order
+  const malePrefs = [
+    'microsoft david','google uk english male','daniel (enhanced)',
+    'daniel','alex','fred','bruce','en-gb-x-rjs','uk english male',
+    'arthur','ryan','rishi','george','james','oliver','reed'
+  ];
+  return eng.find(v => malePrefs.some(n => v.name.toLowerCase().includes(n)))
+    || eng.find(v => !/zira|hazel|karen|susan|kate|victoria|samantha|female/i.test(v.name))
+    || eng[0] || voices[0];
+}
+
+let _radioStaticSrc = null;
+
+function speakLine(speaker, text, onDone) {
+  if (!('speechSynthesis' in window)) { onDone && onDone(); return; }
+  window.speechSynthesis.cancel();
+
+  const style = VOICE_STYLES[speaker] || { rate: 0.80, pitch: 0.30 };
+  const wantFemale = (speaker === 'KIM');
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate   = style.rate;
+  utter.pitch  = style.pitch;
+  utter.volume = parseFloat(document.getElementById('radio-vol')?.value || 0.7);
+
+  const voice = pickVoice(wantFemale);
+  if (voice) utter.voice = voice;
+
+  // Carrier hiss throughout speech
+  const estimatedMs = Math.max(1000, (text.length / Math.max(utter.rate, 0.5)) * 70 + 500);
+  try { _radioStaticSrc = playRadioStaticLoop(estimatedMs); } catch(e){}
+
+  utter.onend = () => {
+    try { _radioStaticSrc && _radioStaticSrc.stop(); } catch(e){}
+    onDone && onDone();
+  };
+  utter.onerror = () => {
+    try { _radioStaticSrc && _radioStaticSrc.stop(); } catch(e){}
+    onDone && onDone();
+  };
+  window.speechSynthesis.speak(utter);
+}
+
+// Play a full exchange back-to-back with real PTT beeps
+function playExchange(exchange, index, onDone) {
+  if (!radioOn || index >= exchange.length) { onDone && onDone(); return; }
+  const { spk, line } = exchange[index];
+
+  const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+  addFeedLine(`[${ts}] [${spk}]: "${line}"`, '#0ff');
+
+  // PTT open chirp
+  playPTTBeep(true);
+
+  setTimeout(() => {
+    speakLine(spk, line, () => {
+      // PTT close blip
+      setTimeout(() => {
+        playPTTBeep(false);
+        const gap = 900 + Math.random() * 800;
+        setTimeout(() => {
+          playExchange(exchange, index + 1, onDone);
+        }, gap);
+      }, 150);
+    });
+  }, 230);
+}
+
+function scheduleNextChatter() {
+  if (!radioOn) return;
+  // Pick a random exchange
+  const exchange = RADIO_EXCHANGES[Math.floor(Math.random() * RADIO_EXCHANGES.length)];
+  // Delay between exchanges — 6–14 seconds
+  const delay = 6000 + Math.random() * 8000;
+
+  radioChatterTimer = setTimeout(() => {
+    if (!radioOn) return;
+    playExchange(exchange, 0, () => {
+      // After exchange finishes, schedule next
+      scheduleNextChatter();
+    });
+  }, delay);
+}
+
+function toggleRadio() {
+  ensureAudioCtx();
+  radioOn = !radioOn;
+  const led = document.getElementById('transmit-led');
+  const volSlider = document.getElementById('radio-vol');
+  const btn = document.getElementById('radio-btn');
+
+  if (radioOn) {
+    playPTTBeep(true);
+    led.classList.add('on');
+    volSlider.style.display = 'block';
+    btn.style.color = '#ff0';
+    btn.style.textShadow = '0 0 10px #ff0';
+    btn.textContent = '◈ RADIO ON';
+    setTimeout(scheduleNextChatter, 1200);
+  } else {
+    window.speechSynthesis && window.speechSynthesis.cancel();
+    try { if(_radioStaticSrc) _radioStaticSrc.stop(); } catch(e){}
+    clearTimeout(radioChatterTimer);
+    playPTTBeep(false);
+    led.classList.remove('on');
+    volSlider.style.display = 'none';
+    btn.style.color = '#0f0';
+    btn.style.textShadow = '0 0 6px #0f0';
+    btn.textContent = '◈ RADIO';
+  }
+}
+
+function setRadioVol(v) {
+  // Volume is read live from the slider in speakLine — no action needed here
+}
+
+function startHum() {
+  ensureAudioCtx();
+  humOsc = audioCtx.createOscillator();
+  humOsc.type = 'sawtooth';
+  humOsc.frequency.value = 60;
+  humGain = audioCtx.createGain();
+  humGain.gain.value = 0.015;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 400;
+  humOsc.connect(filter);
+  filter.connect(humGain);
+  humGain.connect(audioCtx.destination);
+  humOsc.start();
+  const osc2 = audioCtx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = 120;
+  const g2 = audioCtx.createGain();
+  g2.gain.value = 0.008;
+  osc2.connect(g2);
+  g2.connect(audioCtx.destination);
+  osc2.start();
+  humGain._osc2 = osc2;
+}
+
+function stopHum() {
+  if (humOsc) { try{humOsc.stop();}catch(e){} humOsc=null; }
+  if (humGain) { if(humGain._osc2){try{humGain._osc2.stop();}catch(e){}} humGain=null; }
+}
+
+function toggleHum() {
+  ensureAudioCtx();
+  humOn = !humOn;
+  const btn = document.getElementById('hum-btn');
+  if (humOn) { startHum(); btn.classList.add('on'); }
+  else { stopHum(); btn.classList.remove('on'); }
+}
+
+
+// ════════════════════════════════════════════════
+//  MAIN UI INIT
+// ════════════════════════════════════════════════
+
+function initMainUI() {
+  initMatrixRain();
+  initHeroCanvas();
+  initLevels();
+  initArchives();
+  startCountdown();
+  startPersonnelCounter();
+  startEntityCounter();
+  startStabilityCounter();
+  startBreachCounter();
+  startLiveFeed();
+  startHomeLogs();
+  startEntityWarnings();
+  startStaticBursts();
+  updateClock();
+  setInterval(updateClock, 1000);
+  initAdminPanel();
+  initLogoClicks();
+}
+
+// ════════════════════════════════════════════════
+//  MATRIX RAIN
+// ════════════════════════════════════════════════
+function initMatrixRain() {
+  const canvas = document.getElementById('matrix-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  window.addEventListener('resize', () => { canvas.width=window.innerWidth; canvas.height=window.innerHeight; drops=[]; initDrops(); });
+
+  const chars = 'ASYNCΨ0123456789ABCDEF▓▒░█■□●○◆◇♦♣♠ΩΨΦΣΘΛΞΠΥΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩabcdefghijklmnopqrstuvwxyz';
+  const fontSize = 14;
+  const cols = Math.floor(canvas.width / fontSize);
+  let drops = [];
+
+  function initDrops() {
+    for (let i = 0; i < cols; i++) {
+      drops.push(Math.floor(Math.random() * canvas.height / fontSize));
+    }
+  }
+  initDrops();
+
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fontSize + 'px VT323';
+    for (let i = 0; i < drops.length; i++) {
+      const text = chars[Math.floor(Math.random() * chars.length)];
+      const alpha = Math.random() > 0.98 ? 1 : 0.15 + Math.random() * 0.2;
+      ctx.fillStyle = `rgba(0,255,0,${alpha})`;
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 50);
+}
+
+// ════════════════════════════════════════════════
+//  HERO CANVAS (orbital particles)
+// ════════════════════════════════════════════════
+function initHeroCanvas() {
+  const canvas = document.getElementById('hero-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  resize();
+
+  const particles = [];
+  for (let i = 0; i < 80; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = 100 + Math.random() * 300;
+    particles.push({
+      x: canvas.width/2 + Math.cos(angle)*r,
+      y: canvas.height/2 + Math.sin(angle)*r,
+      r, angle,
+      speed: (Math.random()-0.5)*0.003,
+      size: Math.random()*2,
+      color: Math.random()>0.7?'#ff0':Math.random()>0.5?'#0ff':'#0f0',
+      baseR: r
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p => {
+      p.angle += p.speed;
+      p.x = canvas.width/2 + Math.cos(p.angle)*p.r;
+      p.y = canvas.height/2 + Math.sin(p.angle)*p.r;
+      p.r = p.baseR + Math.sin(Date.now()*0.001+p.angle)*15;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.shadowBlur=10; ctx.shadowColor=p.color;
+      ctx.fill();
+      ctx.shadowBlur=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+  window.addEventListener('resize', resize);
+}
+
+// ════════════════════════════════════════════════
+//  COUNTDOWN
+// ════════════════════════════════════════════════
+let countdownEnd = Date.now() + (Math.random()*3600+1800)*1000;
+function startCountdown() {
+  function update() {
+    const rem = Math.max(0, countdownEnd - Date.now());
+    if (rem === 0) countdownEnd = Date.now() + (Math.random()*3600+1800)*1000;
+    const h = Math.floor(rem/3600000);
+    const m = Math.floor((rem%3600000)/60000);
+    const s = Math.floor((rem%60000)/1000);
+    document.getElementById('countdown').textContent =
+      String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const prob = (1 - rem/(3600000*3)) * 100;
+    document.getElementById('noclip-prob').textContent = Math.max(0,prob).toFixed(1) + '%';
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+// ════════════════════════════════════════════════
+//  COUNTERS
+// ════════════════════════════════════════════════
+let _personnel = 0, _targetPersonnel = 0;
+function startPersonnelCounter() {
+  _targetPersonnel = Math.floor(Math.random()*200+50);
+  setInterval(() => {
+    _targetPersonnel += Math.random()<0.3 ? Math.floor(Math.random()*3+1) : 0;
+    _personnel = Math.min(_personnel+1, _targetPersonnel);
+    document.getElementById('personnel-count').textContent = _personnel;
+    document.getElementById('topbar-personnel').textContent = _personnel;
+  }, 80);
+}
+
+let _entities = 0;
+function startEntityCounter() {
+  _entities = Math.floor(Math.random()*15+5);
+  document.getElementById('entity-count').textContent = _entities;
+  setInterval(() => {
+    if (Math.random()<0.05) {
+      _entities += Math.random()<0.7 ? 1 : -1;
+      _entities = Math.max(0,_entities);
+      document.getElementById('entity-count').textContent = _entities;
+    }
+  }, 2000);
+}
+
+let _stability = 100;
+function startStabilityCounter() {
+  _stability = 60 + Math.random()*30;
+  document.getElementById('stability-pct').textContent = _stability.toFixed(1);
+  setInterval(() => {
+    _stability += (Math.random()-0.52)*0.5;
+    _stability = Math.max(10,Math.min(99,_stability));
+    document.getElementById('stability-pct').textContent = _stability.toFixed(1);
+    const el = document.getElementById('stability-pct');
+    el.style.color = _stability < 40 ? '#f00' : _stability < 65 ? '#ff0' : '#0ff';
+  }, 1500);
+}
+
+let _breaches = 0;
+function startBreachCounter() {
+  _breaches = Math.floor(Math.random()*4);
+  document.getElementById('breach-count').textContent = _breaches;
+  setInterval(() => {
+    if (Math.random()<0.08) {
+      _breaches += Math.random()<0.6?1:-1;
+      _breaches=Math.max(0,_breaches);
+      document.getElementById('breach-count').textContent = _breaches;
+    }
+  }, 3000);
+}
+
+// ════════════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('topbar-time').textContent =
+    now.toLocaleTimeString('en-US',{hour12:false}) + ' EST';
+}
+
+// ════════════════════════════════════════════════
+//  LIVE FEED
+// ════════════════════════════════════════════════
+const FEED_MESSAGES = [
+  {col:'#0f0', msgs:[
+    'KV31 TEAM ALPHA: COMPLEX SECTOR B SWEEP COMPLETE — NO LIFEFORM DETECTED',
+    'THRESHOLD FIELD STABLE — LPMD SYSTEM RUNNING AT NOMINAL CAPACITY',
+    'MAINTENANCE: FLUORESCENT BULB REPLACEMENT SCHEDULED — ROOMS 14A THROUGH 14C',
+    'UPLINK TO SAN JOSE SURFACE FACILITY: ESTABLISHED — LATENCY NOMINAL',
+    'DR. JULIA MEISNER: LAMP INSPECTION LOG SUBMITTED — CODES NOTED',
+    'HAZMAT INVENTORY: SUITS 1–12 INSPECTED AND CLEARED FOR DEPLOYMENT',
+    'ROVER SWEEP OF ROOM 14D CORRIDOR: COMPLETE — PATH CONFIRMED CLEAR',
+    'MOTION CAMERA ARRAY: ALL 7 UNITS OPERATIONAL — FEED NOMINAL',
+    'PROJECT KV31: EXPEDITION LOG SUBMITTED BY TEAM ALPHA — FILED',
+    'BACKUP GENERATOR: CHECKED — ADEQUATE FOR MINIMUM 72 HOURS POST-THRESHOLD',
+  ]},
+  {col:'#ff0', msgs:[
+    '⚠ RESEARCHER PETER TENCH: MISSING SINCE MARCH 1, 1990 — SEARCH ONGOING',
+    '⚠ THRESHOLD STABILITY FLUCTUATION DETECTED — LPMD TECHNICIANS NOTIFIED',
+    '⚠ ACOUSTIC ANOMALY DETECTED — ROOM 14C — FREQUENCY CONSISTENT WITH LIFEFORM',
+    '⚠ CAMERA 5: MOTION DETECTED AT 03:53 — REVIEWING FOOTAGE NOW',
+    '⚠ MARVIN E. LEIGH REPORTING: UNIDENTIFIED HUMANOID ENCOUNTERED IN COMPLEX',
+    '⚠ HAZMAT SUIT INTEGRITY BREACH REPORTED — TEAM MEMBER QUARANTINED',
+    '⚠ MISSING PERSONS REPORTS FILED WITH LOCAL PD: +12 THIS WEEK — NULL ZONE SUSPECTED',
+    '⚠ NULL ZONE DETECTED IN CIVILIAN STRUCTURE — LOCATION: CLASSIFIED',
+    '⚠ A-SPACE PROPOSAL: OBJECTION FILED BY RESEARCHER LEIGH — PENDING REVIEW',
+  ]},
+  {col:'#f00', msgs:[
+    '█ CRITICAL: LIFEFORM DETECTED IN ROOM 14C — ALL TEAMS EVACUATE IMMEDIATELY',
+    '█ CRITICAL: THRESHOLD BREACH — LPMD CONTAINMENT FIELD UNSTABLE',
+    '█ CRITICAL: TEAM MEMBER UNACCOUNTED FOR — LAST POSITION: COMPLEX SECTOR 9',
+    '█ CRITICAL: CAMERA FEED — LIFEFORM CRAWLING ON CEILING — SECTOR B',
+    '█ CRITICAL: PETER TENCH SPOTTED INSIDE THRESHOLD OUTPOST — ARMED — ALERT',
+    '█ CRITICAL: MARK BLUME — GUNSHOT WOUND — MEDICAL TEAM TO THRESHOLD NOW',
+    '█ CRITICAL: UNKNOWN VOCALIZATION RECORDED — LIFEFORM MIMICRY SUSPECTED',
+    '█ CRITICAL: NULL ZONE EVENT — CIVILIAN ENTRY INTO THE COMPLEX CONFIRMED',
+  ]},
+  {col:'#0ff', msgs:[
+    'RADIO COMMS [TEAM ALPHA]: "...confirmed visual on entity. Maintaining safe distance. Over."',
+    'RADIO COMMS [MARVIN LEIGH]: "...that\'s not a person. That is NOT a person. Get the rope—"',
+    'RADIO COMMS [MARK BLUME]: "...Oh my God. Open the door. Open the door NOW."',
+    'RADIO COMMS [TEAM ALPHA]: "...copy. Threshold is holding. We\'re heading back to the outpost."',
+    'RADIO COMMS [GEORGE LEVY]: "...Tench, where are you? Tench come in. Peter—" [static]',
+    'RADIO COMMS [FACILITY]: "...all personnel, the Complex is not safe for solo exploration—"',
+    'RADIO COMMS [UNKNOWN]: "...the fluorescent lights are getting louder. Something is above the—" [cut]',
+    'RADIO COMMS [TEAM ALPHA]: "...we found something in Room 14D. Send another camera. Over."',
+  ]},
+];
+
+let feedPaused = false;
+let feedLog = null;
+
+function startLiveFeed() {
+  feedLog = document.getElementById('live-feed-log');
+  addFeedLine('ASYNC TELEMETRY UPLINK ESTABLISHED — STREAM ID: 0x3F9A', '#0ff');
+  addFeedLine('RECEIVING REAL-TIME FACILITY DATA...', '#0f0');
+  addFeedLine('', '#0f0');
+  setInterval(() => {
+    if (!feedPaused) {
+      const group = FEED_MESSAGES[Math.floor(Math.random()*FEED_MESSAGES.length)];
+      const msg = group.msgs[Math.floor(Math.random()*group.msgs.length)];
+      const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+      addFeedLine(`[${ts}] ${msg}`, group.col);
+    }
+  }, 2000);
+}
+
+function addFeedLine(text, color) {
+  if (!feedLog) return;
+  const el = document.createElement('div');
+  el.className = 'log-line';
+  el.style.color = color || '#0f0';
+  el.textContent = text;
+  feedLog.appendChild(el);
+  feedLog.scrollTop = feedLog.scrollHeight;
+  // Trim
+  while (feedLog.children.length > 200) feedLog.removeChild(feedLog.firstChild);
+}
+
+function clearFeed() {
+  if (feedLog) feedLog.innerHTML = '';
+  addFeedLine('LOG CLEARED BY OPERATOR', '#f00');
+}
+
+function pauseFeed() {
+  feedPaused = !feedPaused;
+  document.getElementById('pause-btn').textContent = feedPaused ? 'RESUME' : 'PAUSE';
+  document.getElementById('pause-btn').style.color = feedPaused ? '#0f0' : '#ff0';
+}
+
+// HOME LOG
+let homeLog = null;
+const HOME_LOG_MSGS = [
+  {t:'#0f0', m:'KV31 TEAM ALPHA: COMPLEX SWEEP COMPLETE — OUTPOST SECURE'},
+  {t:'#ff0', m:'⚠ LIFEFORM MOVEMENT DETECTED — ROOM 14C VICINITY'},
+  {t:'#0f0', m:'LPMD SYSTEM: THRESHOLD FIELD ACTIVE — MONITORING CONTINUOUSLY'},
+  {t:'#f00', m:'CRITICAL: RESEARCHER MISSING — LAST POSITION: COMPLEX SECTOR B'},
+  {t:'#0f0', m:'CAMERA ARRAY: 7 UNITS OPERATIONAL — MOTION FEED NOMINAL'},
+  {t:'#0ff', m:'RADIO CHECK: TEAM ALPHA AND BETA RESPONDING — COMMS STABLE'},
+  {t:'#ff0', m:'⚠ ACOUSTIC ANOMALY — ROOM 14C — VOCAL MIMICRY PATTERN SUSPECTED'},
+  {t:'#0f0', m:'HAZMAT SUITS: ALL 12 INSPECTED AND CLEARED FOR DEPLOYMENT'},
+  {t:'#f00', m:'LIFEFORM DETECTED — KV31 CONTAINMENT TEAM MOBILIZING'},
+  {t:'#0f0', m:'DOOR INTEGRITY CHECK COMPLETE — THRESHOLD OUTPOST SEALED'},
+  {t:'#ff0', m:'⚠ NULL ZONE EVENT REPORTED — CIVILIAN ENTRY INTO COMPLEX'},
+  {t:'#0f0', m:'DR. MEISNER: LAMP INSPECTION COMPLETE — ANOMALOUS CODES NOTED'},
+];
+
+function startHomeLogs() {
+  homeLog = document.getElementById('home-log');
+  setInterval(() => {
+    const line = HOME_LOG_MSGS[Math.floor(Math.random()*HOME_LOG_MSGS.length)];
+    const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+    const el = document.createElement('div');
+    el.style.color = line.t;
+    el.textContent = `[${ts}] ${line.m}`;
+    homeLog.appendChild(el);
+    if (homeLog.children.length > 12) homeLog.removeChild(homeLog.firstChild);
+  }, 2500);
+}
+
+// ════════════════════════════════════════════════
+//  ENTITY WARNINGS
+// ════════════════════════════════════════════════
+const ENTITY_WARNINGS = [
+  {name:'THE LIFEFORM', desc:'DETECTED 40m FROM THRESHOLD OUTPOST. Wire-like anatomy. Humanoid. Do NOT make sound. It is listening. Stand still.', pos:'bottom-left'},
+  {name:'LIFEFORM — VOCAL MIMICRY ACTIVE', desc:'Entity is replicating human voice. DO NOT follow the sound. It is not a person. Marvin E. Leigh confirmed this on May 6, 1990.', pos:'top-right'},
+  {name:'LIFEFORM — CEILING CRAWL DETECTED', desc:'Camera 5 recording motion on ceiling. Consistent with March 5, 1990 sighting. Do not look up. Do not run.', pos:'bottom-right'},
+  {name:'NULL ZONE EVENT', desc:'Uncontrolled entry into the Complex detected. Civilian casualty likely. Initiating missing persons suppression protocol per A-Space NDA.', pos:'top-left'},
+  {name:'TEMPORAL ANOMALY', desc:'Researcher reporting disorientation and time loss. Consistent with Peter Tench incident, March 1990. Isolate immediately.', pos:'bottom-left'},
+  {name:'LIFEFORM — NEST DETECTED', desc:'Tendrils and black mold substrate found in Room 14C. Area sealed. Do NOT disturb the nest structure. Evacuation protocol active.', pos:'top-right'},
+];
+
+function startEntityWarnings() {
+  function showWarning() {
+    const w = ENTITY_WARNINGS[Math.floor(Math.random()*ENTITY_WARNINGS.length)];
+    const el = document.getElementById('entity-warning');
+    document.getElementById('entity-warning-text').innerHTML =
+      `<b style="color:#ff0;">ASYNC ALERT — ${w.name}</b><br><br>${w.desc}`;
+    el.style.display = 'block';
+    const p = w.pos;
+    el.style.top = p.includes('top') ? '80px' : 'auto';
+    el.style.bottom = p.includes('bottom') ? '20px' : 'auto';
+    el.style.left = p.includes('left') ? '20px' : 'auto';
+    el.style.right = p.includes('right') ? '20px' : 'auto';
+    setTimeout(() => { el.style.display='none'; }, 5000);
+    setTimeout(showWarning, 18000 + Math.random()*25000);
+  }
+  setTimeout(showWarning, 10000 + Math.random()*8000);
+}
+
+// ════════════════════════════════════════════════
+//  STATIC BURSTS
+// ════════════════════════════════════════════════
+function startStaticBursts() {
+  const canvas = document.getElementById('static-burst-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  function burst() {
+    canvas.style.display = 'block';
+    const duration = 100 + Math.random()*200;
+    const start = Date.now();
+    function frame() {
+      const elapsed = Date.now()-start;
+      if (elapsed > duration) { canvas.style.display='none'; setTimeout(burst, 10000+Math.random()*30000); return; }
+      const iData = ctx.createImageData(canvas.width,canvas.height);
+      const data = iData.data;
+      for(let i=0;i<data.length;i+=4){
+        if(Math.random()<0.08){
+          const v=Math.random()*200;
+          data[i]=0;data[i+1]=v;data[i+2]=0;data[i+3]=120;
+        }
+      }
+      ctx.putImageData(iData,0,0);
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  setTimeout(burst, 5000+Math.random()*15000);
+}
+
+// ════════════════════════════════════════════════
+//  LEVELS DATA
+// ════════════════════════════════════════════════
+const LEVELS = [
+  {num:'COMPLEX', name:'THE COMPLEX — PRIMARY ZONE', danger:45, color:'#ff0',
+   desc:'Infinite yellow-wallpapered corridors. Moist carpet. Buzzing fluorescent lights. Entry point for all Null Zone events. The Threshold outpost is located just inside the primary ingress point.',
+   pop:'KV31 Teams — Rotating', entities:'The Lifeform (confirmed)'},
+  {num:'14C', name:'ROOM 14C — PIT SECTOR', danger:72, color:'#f00',
+   desc:'Grid of pits in the floor. Marvin E. Leigh fell into the sub-area below on May 6, 1990 and encountered the Lifeform. Area has been sealed with fencing. Exploration requires armed escort.',
+   pop:'Restricted', entities:'The Lifeform (active — confirmed MAY 1990)'},
+  {num:'14D', name:'ROOM 14D — LOWER AREA', danger:80, color:'#f00',
+   desc:'Sub-area below Room 14C accessed via the pit grid. A house-like structure was observed. The Lifeform lured Marvin using vocal mimicry of a screaming person. Wooden wall sealed; later deconstructed.',
+   pop:'0 (Sealed)', entities:'The Lifeform — Nest suspected'},
+  {num:'OUTPOST', name:'THRESHOLD OUTPOST', danger:30, color:'#ff0',
+   desc:'Async-constructed base of operations just inside the Threshold. Contains monitoring equipment, communications array, and storage. Peter Tench triggered its alarm system on May 8, 1990.',
+   pop:'Staffed 24/7', entities:'None — secured perimeter'},
+  {num:'COTTAGE', name:'COTTAGE-FOREST AREA', danger:65, color:'#ff0',
+   desc:'Anomalous area encountered by Peter Tench during his temporal displacement. Features structures inconsistent with the surrounding Complex geometry. Nature: unknown.',
+   pop:'0', entities:'Unknown — insufficient data'},
+  {num:'POOLROOMS', name:'THE POOLROOMS', danger:60, color:'#ff0',
+   desc:'Water-resistant tiled corridors with shallow pools. Encountered in Found Footage #2. Located below the primary yellow halls. Suggests the Complex has a sub-basement structure. Humidity: extreme.',
+   pop:'1 (Unidentified Female — missing)', entities:'Unknown aquatic — suspected'},
+  {num:'STILL LIFE', name:'STATIC DEAD END — FURNITURE ZONE', danger:85, color:'#f00',
+   desc:'Furniture and objects phased into walls and floors. Implies that people or objects entering via Null Zones may become embedded in solid Complex structure. Do not touch embedded objects.',
+   pop:'0 (Assumed)', entities:'Still Life entity — confirmed (Found Footage #3)'},
+  {num:'???', name:'BEYOND THE DOOR — MARK\'S DISCOVERY', danger:99, color:'#f00',
+   desc:'The door on the far side of Room 14D revealed a green glow on opening. Researcher Mark Blume exclaimed "Oh my God." Contents not yet documented. All personnel are barred from approaching.',
+   pop:'UNKNOWN', entities:'UNKNOWN — GREEN GLOW ANOMALY'},
+];
+
+// ── add notes + doc fields to LEVELS that still need them ──
+const LEVEL_EXTRAS = {
+  'COMPLEX': {
+    notes: `The Complex was first accessed October 17, 1989 via the sixth LPMD test. The Threshold opening is theorized to have caused the Loma Prieta earthquake, killing 63 Async personnel. Interior volume has no confirmed boundary after four years of KV31 exploration. Humidity ranges 72–78%. Fluorescent fixtures are active despite no known external power source. Acoustic properties are anomalous — sound carries unpredictably. Wall markings left by previous occupants have been documented in multiple sectors. Personnel entering via uncontrolled Null Zones often report disorientation and incomplete memories of entry.`,
+    doc: 'ASYNC-KV31-0001 | SAN JOSE FACILITY | CLEARANCE: LEVEL 2'
+  },
+  '14C': {
+    notes: `May 6 1990 — researcher Marvin E. Leigh fell through a pit opening while crossing the grid. In the sub-area below he heard what sounded like a person screaming for help. He followed the sound toward a Lifeform entity using vocal mimicry. Upon visual contact, Marvin stated: "That's not a person. That is NOT a person." He fled. A rope was lowered and he was extracted. He coughed on ascent — hazmat suit integrity: unverified. Area fenced immediately. An unmanned rover sweep was conducted before partial reopening. Armed escort now mandatory.`,
+    doc: 'ASYNC-KV31-0088 | PITFALLS INCIDENT REPORT | CLEARANCE: LEVEL 3'
+  },
+  '14D': {
+    notes: `The house structure inside 14D appears to have been inhabited by a prior occupant — possibly Nicolas Bolton, whose decomposing body was found nearby Feb 2 1990 with black mold and a mutated hay bacillus strain now believed to be the Lifeform's biological substrate. A construction team later built a walkway to the door at the far end. Mark Blume opened it and observed a green glow, exclaiming "Oh my God." Contents of the space beyond remain undocumented. All access past the door is barred — Level 5 clearance only.`,
+    doc: 'ASYNC-KV31-0091 | ROOM 14D SURVEY | CLEARANCE: LEVEL 4'
+  },
+  'OUTPOST': {
+    notes: `Built immediately after the sixth LPMD test opened the Complex. Sits directly adjacent to the Threshold aperture and enables controlled entry/exit. Peter Tench triggered the outpost alarm May 8 1990 upon re-entering from his temporal displacement. The Threshold-facing window was sealed after the Lifeform was confirmed to have access to this sector. All personnel must decontaminate before exiting back to the San Jose surface facility. Seven motion cameras are maintained here with 24/7 monitoring by a minimum crew of three.`,
+    doc: 'ASYNC-KV31-0010 | OUTPOST OPERATIONS MANUAL | CLEARANCE: LEVEL 2'
+  },
+  'COTTAGE': {
+    notes: `Peter Tench stumbled into this area March 1 1990 after being displaced forward approximately two months in time. The area features a cottage-like structure inside what appears to be a forest environment — neither of which should exist in the Complex. No other KV31 researcher has documented this space. Tench's camera footage from this period is classified Level 4. Whether temporal displacement is a property of specific Complex areas or a broader phenomenon remains unknown. Forward time travel has been confirmed as a canonical function of the Complex's anomalous physics.`,
+    doc: 'ASYNC-KV31-0087 | TENCH TEMPORAL LOG | CLEARANCE: LEVEL 4'
+  },
+  'POOLROOMS': {
+    notes: `Documented by an unidentified female civilian who entered via a self-made Null Zone in her residential garage — she discovered an anomalous "hole" sealed with duct tape and fell in. She explored the tiled pool corridors and encountered something dangerous before footage terminated. The Poolrooms sit below the primary yellow corridor level, confirming vertical structure to the Complex. Pool shapes are oblong and shallow, similar to oversized hot tubs. Water origin and temperature unknown. Async has not been able to re-locate the civilian. Status: missing.`,
+    doc: 'ASYNC-KV31-0201 | NULL ZONE EVENT — FF#2 CIVILIAN | CLEARANCE: LEVEL 3'
+  },
+  'STILL LIFE': {
+    notes: `Discovered behind the mystery door at the far end of Room 14D. Objects — chairs, tables, household items — are partially fused into walls and floors at impossible angles, having entered the Complex via Null Zones and become embedded in structural material. This implies human beings could theoretically enter a Null Zone and become similarly embedded in concrete or wallboard — death by structural absorption. A second entity type, the "Still Life," was observed in this area. Its behavior is unknown and distinct from the Lifeform. DO NOT TOUCH embedded objects. DO NOT REMAIN STATIONARY near walls.`,
+    doc: 'ASYNC-KV31-0301 | STATIC DEAD END SURVEY | CLEARANCE: LEVEL 4'
+  },
+  '???': {
+    notes: `May 25 1990 — Mark Blume opened the door at the far end of Room 14D after the KV31 construction team completed the walkway. The green glow emanating from within was captured on camera. Blume's reaction was immediate and visceral. He called for a second camera. Whatever he observed has not been formally documented in any accessible KV31 report. Access is barred under Executive Order KV31-11. Researcher theories include: a second Threshold aperture, an anomalous energy source, or a space with fundamentally different physics. The green light phenomenon has been observed at multiple Null Zone entry points throughout the Complex.`,
+    doc: 'ASYNC-KV31-EYES-ONLY | BEYOND THE DOOR | CLEARANCE: LEVEL 5'
+  },
+};
+
+function highlightLore(text) {
+  return text.replace(/\b(Lifeform|Marvin E\. Leigh|Marvin|Peter Tench|Mark Blume|George Levy|Null Zone|Threshold|Complex|KV31|Nicolas Bolton|LPMD|Async|Ivan Beck|Julia Meisner)\b/g,
+    '<span style="color:#ff0;text-shadow:0 0 6px rgba(255,255,0,0.4);">$1</span>');
+}
+
+function openLevelModal(level) {
+  const modal = document.getElementById('level-modal');
+  const dangerColor = level.danger > 80 ? '#f00' : level.danger > 60 ? '#ff0' : '#0f0';
+  const extra = LEVEL_EXTRAS[level.num] || { notes: 'CLASSIFIED — INSUFFICIENT CLEARANCE.', doc: 'ASYNC-KV31-RESTRICTED' };
+
+  document.getElementById('level-modal-num').innerHTML =
+    `<span style="color:${level.color};text-shadow:0 0 14px ${level.color};">AREA: ${level.num}</span>`;
+  document.getElementById('level-modal-name').textContent = level.name;
+  document.getElementById('level-modal-danger').innerHTML =
+    `<span style="color:${dangerColor};text-shadow:0 0 8px ${dangerColor};font-size:32px;">${level.danger}%</span>
+     <span style="color:rgba(255,255,255,0.4);font-size:18px;"> — ${level.danger>80?'EXTREME DANGER':level.danger>60?'HIGH DANGER':'MODERATE DANGER'}</span>`;
+  document.getElementById('level-modal-danger-fill').style.width = level.danger + '%';
+  document.getElementById('level-modal-danger-fill').style.background = `linear-gradient(90deg,${dangerColor},${dangerColor}55)`;
+  document.getElementById('level-modal-danger-fill').style.boxShadow = `0 0 8px ${dangerColor}`;
+  document.getElementById('level-modal-pop').textContent = level.pop;
+  document.getElementById('level-modal-entities').innerHTML = `⚠ ${level.entities}`;
+  document.getElementById('level-modal-desc').innerHTML = highlightLore(level.desc);
+  document.getElementById('level-modal-notes').innerHTML = highlightLore(extra.notes);
+  document.getElementById('level-modal-footer').textContent = `DOCUMENT: ${extra.doc}`;
+  modal.style.display = 'flex';
+  // Animate in
+  modal.querySelector('div').style.animation = 'logAppear 0.2s ease';
+}
+
+function closeLevelModal() {
+  document.getElementById('level-modal').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeLevelModal();
+    closeAdmin();
+  }
+});
+
+function initLevels() {
+  const grid = document.getElementById('levels-grid');
+  LEVELS.forEach(level => {
+    const card = document.createElement('div');
+    card.className = 'level-card';
+    const dangerColor = level.danger > 80 ? '#f00' : level.danger > 60 ? '#ff0' : '#0f0';
+    card.style.cursor = 'pointer';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <span style="font-size:26px;color:${level.color};text-shadow:0 0 12px ${level.color};letter-spacing:2px;">AREA: ${level.num}</span>
+        <span style="font-size:13px;letter-spacing:2px;color:${dangerColor};margin-top:4px;">DANGER<br>${level.danger}%</span>
+      </div>
+      <div style="font-size:18px;letter-spacing:2px;color:#0ff;margin-bottom:8px;line-height:1.2;">${level.name}</div>
+      <div style="font-size:13px;color:rgba(0,255,0,0.6);line-height:1.5;margin-bottom:10px;">${level.desc.substring(0,110)}…</div>
+      <div style="font-size:12px;color:rgba(255,0,0,0.7);">⚠ ${level.entities}</div>
+      <div class="danger-bar" style="margin-top:10px;height:4px;background:rgba(0,255,0,0.08);">
+        <div style="height:100%;width:${level.danger}%;background:linear-gradient(90deg,${dangerColor},${dangerColor}44);box-shadow:0 0 6px ${dangerColor};"></div>
+      </div>
+      <div style="margin-top:10px;font-size:13px;letter-spacing:2px;color:rgba(0,255,0,0.3);border-top:1px solid rgba(0,255,0,0.08);padding-top:8px;transition:color 0.2s;">
+        ▶ CLICK FOR CLASSIFIED DOSSIER
+      </div>
+    `;
+    card.addEventListener('click', () => openLevelModal(level));
+    card.addEventListener('mouseenter', () => {
+      card.querySelector('div:last-child').style.color = '#0f0';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.querySelector('div:last-child').style.color = 'rgba(0,255,0,0.3)';
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════
+//  ARCHIVES
+// ════════════════════════════════════════════════
+const ARCHIVE_DOCS = [
+  {
+    id:'ASYNC-KV31-0047',
+    date:'OCT 17, 1989',
+    title:'THRESHOLD OPENING — SIXTH TEST REPORT',
+    clearance:'LEVEL 3',
+    content:`At <span class="redacted" title="approximately 11:00 PM">approximately 11:00 PM</span> on October 17, 1989, the sixth test of the 
+    <span class="redacted" title="Low-Proximity Magnetic Distortion System">Low-Proximity Magnetic Distortion System</span> was conducted at the San Jose facility under the 
+    direction of Vice Director <span class="redacted" title="Ivan Beck">Ivan Beck</span>. Two scientists argued whether to shut down the machine. 
+    The experiment was not halted. After the machine nearly failed, contact with the Complex was successfully established. 
+    The opening of the Threshold is theorized to have caused the <span class="redacted" title="1989 Loma Prieta earthquake">1989 Loma Prieta earthquake</span>, 
+    knocking out all electricity in the building and resulting in <span class="redacted" title="63 confirmed casualties">63 confirmed casualties</span>. 
+    An obstruction of unknown nature was detected inside the aperture. Nature of obstruction: <span class="redacted" title="the Lifeform — see KV31-0089">the Lifeform — see KV31-0089</span>. 
+    The Complex is now open. Project KV31 exploration operations to begin immediately.`
+  },
+  {
+    id:'ASYNC-KV31-0112',
+    date:'MAR 5, 1990',
+    title:'MOTION DETECTED — CAMERA ARRAY REPORT / LIFEFORM FIRST CONTACT',
+    clearance:'LEVEL 4',
+    content:`On March 5, 1990, Async installed <span class="redacted" title="seven">seven</span> motion and sound detection cameras inside the Complex. 
+    At <span class="redacted" title="01:06:44">01:06:44</span> an undetermined noise was registered. At <span class="redacted" title="03:53:42">03:53:42</span>, camera 5 recorded 
+    an unknown creature crawling across the ceiling and peering around a corner. 
+    The entity — internally designated <span class="redacted" title="the Lifeform">the Lifeform</span>, colloquially called "Bacteria" — appears to be a 
+    <span class="redacted" title="humanoid colonial organism">humanoid colonial organism</span> composed of a mutated strain of 
+    <span class="redacted" title="hay bacillus">hay bacillus</span> with anomalous properties. 
+    Anatomy: two long arm-like limbs extending to the ground, thin wire-like fingers, vine-like torso. 
+    Capable of <span class="redacted" title="mimicking human voices">mimicking human voices</span> — likely by repurposing a victim's trachea. 
+    Hostile upon detection. All KV31 personnel are advised: DO NOT SPEAK ABOVE 40dB INSIDE THE COMPLEX. 
+    Hazmat suit integrity must be maintained at all times. Breach of suit = assumed exposure to <span class="redacted" title="mutated bacillus strain">mutated bacillus strain</span>.`
+  },
+  {
+    id:'ASYNC-KV31-0089',
+    date:'MAR 1 – MAY 8, 1990',
+    title:'INCIDENT REPORT — PETER TENCH / PROJECT KV31 TEMPORAL ANOMALY',
+    clearance:'LEVEL 4',
+    content:`On <span class="redacted" title="March 1, 1990">March 1, 1990</span>, researcher <span class="redacted" title="Peter Tench">Peter Tench</span>, camera operator for 
+    Team Alpha (alongside <span class="redacted" title="Marvin E. Leigh, George Levy, Ronald McCarthy">Marvin E. Leigh, George Levy, Ronald McCarthy</span>), 
+    separated from his team to investigate sounds of a crowd. A camera malfunction consistent with 
+    <span class="redacted" title="temporal displacement">temporal displacement</span> was recorded. Tench was transported to 
+    <span class="redacted" title="May 8, 1990">May 8, 1990</span> — approximately <span class="redacted" title="two months">two months</span> forward in time. 
+    He entered the Threshold Outpost, triggering the security system during a DOE funding tour. 
+    For operational security, Async issued a <span class="redacted" title="falsified death notice">falsified death notice</span> for Tench. 
+    Tench was held at the facility while Async sought reintegration options. His mental health deteriorated. 
+    On <span class="redacted" title="May 22, 1990">May 22, 1990</span>, Tench stole credentials, re-entered the Complex, and confronted Team B at gunpoint — 
+    shooting researcher <span class="redacted" title="Mark Blume">Mark Blume</span>. He escaped the facility via the freight elevator. 
+    Official cause of death: <span class="redacted" title="blunt head trauma, hillside fall — DISPUTED">blunt head trauma, hillside fall — DISPUTED</span>.`
+  },
+  {
+    id:'ASYNC-KV31-0201',
+    date:'FEB 2, 1990',
+    title:'AUTOPSY REPORT — UNIDENTIFIED VICTIM / CASE NB-001',
+    clearance:'LEVEL 3',
+    content:`On February 2, 1990, a KV31 research team discovered a <span class="redacted" title="decomposing male corpse">decomposing male corpse</span> inside the Complex. 
+    Mold growth of unknown species was found surrounding the body. 
+    The deceased is theorized to be <span class="redacted" title="Nicolas Bolton">Nicolas Bolton</span>, a missing person reported 
+    <span class="redacted" title="November 1989">November 1989</span>. An autopsy was performed on February 4, 1990 by a physician with 
+    <span class="redacted" title="no prior knowledge of the Complex">no prior knowledge of the Complex</span>. 
+    Cause of death: <span class="redacted" title="malnutrition — starvation">malnutrition — starvation</span>. 
+    Inside the body: a <span class="redacted" title="mutated strain of hay bacillus">mutated strain of hay bacillus</span> with anomalous, non-benign properties — 
+    distinct from the naturally occurring strain. Severe tissue damage observed. 
+    The bacillus strain found here is believed to be the biological substrate of 
+    <span class="redacted" title="the Lifeform entity">the Lifeform entity</span>. 
+    This document is sealed under Executive Order KV31-7. Unauthorized disclosure: <span class="redacted" title="termination of employment and prosecution">termination of employment and prosecution</span>.`
+  },
+  {
+    id:'ASYNC-KV31-0290',
+    date:'MAY 1990',
+    title:'"A-SPACE" PROSPECTIVE DEVELOPMENT — INTERNAL MEMO',
+    clearance:'LEVEL 2',
+    content:`Async leadership has proposed the commercialization of the Complex under the public-facing designation 
+    <span class="redacted" title='"A-Space"'>"A-Space"</span>. The initiative, presented to <span class="redacted" title="DOE President James Watkins">DOE President James Watkins</span>, 
+    frames the infinite interior of the Complex as a solution to national housing, storage, and office space shortages. 
+    Proposed uses include: warehousing, retail, and residential development. 
+    This proposal was drafted despite active Lifeform sightings, the disappearance of 
+    <span class="redacted" title="Peter Tench">Peter Tench</span>, a confirmed civilian casualty 
+    (<span class="redacted" title="Nicolas Bolton">Nicolas Bolton</span>), and a global spike in missing persons cases 
+    attributable to <span class="redacted" title="Null Zone events">Null Zone events</span>. 
+    Researcher <span class="redacted" title="Marvin E. Leigh">Marvin E. Leigh</span> has filed a formal objection. His objection has been 
+    <span class="redacted" title="noted and filed — no action taken">noted and filed — no action taken</span>.`
+  },
+];
+
+function initArchives() {
+  const container = document.getElementById('archives-content');
+  ARCHIVE_DOCS.forEach(doc => {
+    const el = document.createElement('div');
+    el.className = 'archive-doc border-breathe';
+    el.innerHTML = `
+      <div class="stamp">CLASSIFIED</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;font-size:13px;color:rgba(0,255,0,0.4);letter-spacing:1px;">
+        <span>DOC: <span style="color:#0ff;">${doc.id}</span></span>
+        <span>DATE: <span style="color:#ff0;">${doc.date}</span></span>
+        <span>CLEARANCE: <span style="color:#f00;">${doc.clearance}</span></span>
+      </div>
+      <div style="font-size:22px;letter-spacing:2px;color:#ff0;margin-bottom:12px;text-shadow:0 0 8px #ff0;">${doc.title}</div>
+      <div style="font-size:15px;line-height:1.8;color:rgba(0,255,0,0.8);">${doc.content}</div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+// ════════════════════════════════════════════════
+//  THRESHOLD BODYCAM SYSTEM
+// ════════════════════════════════════════════════
+
+const CAMERAS = [
+  { id:'cam1', label:'MARVIN E. LEIGH',    role:'TEAM ALPHA — CAM OP',    loc:'COMPLEX SECTOR B',   danger:0.15, scene:'walking',    callsign:'LEIGH'    },
+  { id:'cam2', label:'MARK BLUME',         role:'TEAM ALPHA — ARMED',     loc:'ROOM 14C APPROACH',  danger:0.55, scene:'approach14c', callsign:'BLUME'    },
+  { id:'cam3', label:'GEORGE LEVY',        role:'TEAM ALPHA — SCIENCE',   loc:'OUTPOST INTERIOR',   danger:0.08, scene:'outpost',    callsign:'LEVY'     },
+  { id:'cam4', label:'KIM',               role:'TEAM ALPHA — COORD',     loc:'CORRIDOR A',         danger:0.22, scene:'corridor',   callsign:'KIM'      },
+  { id:'cam5', label:'RANDALL TACHI',      role:'TEAM BRAVO — OPS',       loc:'ROOM 14D LOWER',     danger:0.72, scene:'lowerarea',  callsign:'TACHI'    },
+  { id:'cam6', label:'CLYDE',             role:'BASE OPERATOR',          loc:'THRESHOLD OUTPOST',  danger:0.04, scene:'base',       callsign:'CLYDE'    },
+  { id:'cam7', label:'[SIGNAL LOST]',      role:'UNKNOWN UNIT',           loc:'SECTOR UNKNOWN',     danger:1.00, scene:'lost',       callsign:'???'      },
+];
+
+const CAM_W = 320, CAM_H = 180; // 16:9 bodycam
+let camAFs = {};
+let camExpanded = null;
+let camExpAF = null;
+let camShakeState = {};
+
+// ── Bodycam shake/breathing state ──
+function getShake(id, t, intensity) {
+  if (!camShakeState[id]) camShakeState[id] = { bx:0, by:0, bphase: Math.random()*Math.PI*2 };
+  const s = camShakeState[id];
+  // Breathing oscillation
+  const breath = Math.sin(t * 0.0008 + s.bphase) * intensity * 3;
+  const breathX = Math.cos(t * 0.0005 + s.bphase) * intensity * 1.5;
+  // Micro hand-tremble
+  const trX = (Math.random()-0.5) * intensity * 1.5;
+  const trY = (Math.random()-0.5) * intensity * 1.5;
+  // Footstep thud every ~0.8s
+  const step = Math.sin(t * 0.004) > 0.92 ? intensity * 4 : 0;
+  return { x: breathX + trX, y: breath + trY + step };
+}
+
+// ── HUD Overlay: bodycam style ──
+function drawBodycamHUD(ctx, w, h, cam, t) {
+  const dangerColor = cam.danger > 0.6 ? '#f00' : cam.danger > 0.3 ? '#ff0' : '#0f0';
+  const dangerPct = Math.floor(cam.danger * 100);
+
+  // Top-left: callsign + role
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, w, 28);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.floor(w*0.048)}px 'Share Tech Mono', monospace`;
+  ctx.fillText(cam.callsign, 8, 19);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = `${Math.floor(w*0.036)}px 'Share Tech Mono', monospace`;
+  ctx.fillText(cam.role, 8 + ctx.measureText(cam.callsign+'  ').width + 4, 18);
+
+  // Top-right: REC + timestamp
+  const now = new Date();
+  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(w - 110, 0, 110, 28);
+  // Blinking REC dot
+  if (Math.floor(t/500) % 2 === 0) {
+    ctx.fillStyle = '#f00';
+    ctx.beginPath(); ctx.arc(w - 100, 14, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.floor(w*0.038)}px 'Share Tech Mono', monospace`;
+    ctx.fillText('REC', w - 90, 19);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `${Math.floor(w*0.036)}px 'Share Tech Mono', monospace`;
+  ctx.fillText(ts, w - 72, 19);
+
+  // Bottom bar
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, h - 26, w, 26);
+
+  // Bottom-left: location
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = `${Math.floor(w*0.038)}px 'Share Tech Mono', monospace`;
+  ctx.fillText(cam.loc, 8, h - 8);
+
+  // Bottom-right: danger meter
+  const meterW = 70;
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(w - meterW - 8, h - 18, meterW, 8);
+  ctx.fillStyle = dangerColor;
+  ctx.fillRect(w - meterW - 8, h - 18, meterW * cam.danger, 8);
+  ctx.fillStyle = dangerColor;
+  ctx.font = `${Math.floor(w*0.036)}px 'Share Tech Mono', monospace`;
+  ctx.fillText(`RISK ${dangerPct}%`, w - meterW - 8, h - 8);
+
+  // Center crosshair (subtle)
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  const cx = w/2, cy = h/2;
+  ctx.beginPath(); ctx.moveTo(cx-8,cy); ctx.lineTo(cx+8,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-8); ctx.lineTo(cx,cy+8); ctx.stroke();
+
+  // Motion alert flash
+  if (cam.motionAlert) {
+    ctx.strokeStyle = `rgba(255,0,0,${0.3 + 0.4*Math.sin(t*0.02)})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, w-4, h-4);
+    ctx.fillStyle = `rgba(255,0,0,${0.4 + 0.3*Math.sin(t*0.02)})`;
+    ctx.font = `bold ${Math.floor(w*0.06)}px 'Share Tech Mono', monospace`;
+    ctx.fillText('MOTION DETECTED', w/2 - ctx.measureText('MOTION DETECTED').width/2, h/2 + 4);
+  }
+}
+
+// ── Night-vision first-person scenes ──
+
+function drawWalkingCorridor(ctx, w, h, t, cam) {
+  const sh = getShake(cam.id, t, 0.8);
+  ctx.save(); ctx.translate(sh.x, sh.y);
+
+  // NV green corridor — first person walking
+  ctx.fillStyle = '#000'; ctx.fillRect(-10,-10,w+20,h+20);
+
+  // Perspective walls — infinite corridor
+  const cx = w/2 + sh.x*0.3, cy = h*0.45;
+  const vanishX = cx + Math.sin(t*0.0003)*w*0.02;
+  const vanishY = cy + Math.cos(t*0.0002)*h*0.01;
+
+  // Wallpaper panels left/right
+  for (let d=1; d<=10; d++) {
+    const scale = 1 - d*0.08;
+    const lx = vanishX - (vanishX)*scale;
+    const rx = vanishX + (w - vanishX)*scale;
+    const ty2 = vanishY - (vanishY)*scale;
+    const by = vanishY + (h*0.55)*scale;
+    const bright = Math.max(0, 120 - d*12);
+    ctx.strokeStyle = `rgba(0,${bright},0,0.6)`; ctx.lineWidth = 0.7;
+    // Left wall
+    ctx.beginPath(); ctx.moveTo(vanishX,vanishY); ctx.lineTo(lx,by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(vanishX,vanishY); ctx.lineTo(lx,ty2); ctx.stroke();
+    // Right wall
+    ctx.beginPath(); ctx.moveTo(vanishX,vanishY); ctx.lineTo(rx,by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(vanishX,vanishY); ctx.lineTo(rx,ty2); ctx.stroke();
+    // Ceiling/floor cross lines
+    if (d < 8) {
+      ctx.beginPath(); ctx.moveTo(lx,ty2); ctx.lineTo(rx,ty2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(lx,by); ctx.lineTo(rx,by); ctx.stroke();
+      // Wallpaper texture dots
+      for (let wi=0;wi<3;wi++) {
+        const wx = lx + (rx-lx)*(wi+1)/4;
+        const wy = ty2 + (by-ty2)*0.4;
+        ctx.fillStyle=`rgba(0,${bright*0.6},0,0.4)`;
+        ctx.fillRect(wx,wy,1.5,1.5);
+      }
+    }
+  }
+
+  // Floor carpet texture
+  ctx.fillStyle = `rgba(0,40,0,0.5)`;
+  const floorGrad = ctx.createLinearGradient(0, h*0.5, 0, h);
+  floorGrad.addColorStop(0, 'rgba(0,50,0,0.6)');
+  floorGrad.addColorStop(1, 'rgba(0,25,0,0.9)');
+  ctx.fillStyle = floorGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, h*0.5); ctx.lineTo(w, h*0.5); ctx.lineTo(w,h); ctx.lineTo(0,h);
+  ctx.fill();
+
+  // Fluorescent light bar at ceiling
+  const flicker = Math.random() > 0.96 ? 0.1 : 0.6 + 0.3*Math.sin(t*0.007);
+  ctx.fillStyle = `rgba(0,255,100,${flicker*0.2})`;
+  ctx.fillRect(w*0.3, 0, w*0.4, h*0.06);
+  // Light bloom
+  const bloom = ctx.createRadialGradient(w/2, 0, 0, w/2, 0, h*0.4);
+  bloom.addColorStop(0, `rgba(0,255,100,${flicker*0.08})`);
+  bloom.addColorStop(1, 'transparent');
+  ctx.fillStyle = bloom; ctx.fillRect(0,0,w,h*0.5);
+
+  ctx.restore();
+
+  // NV grain overlay
+  applyNVGrain(ctx, w, h, 0.04);
+  applyNVVignette(ctx, w, h);
+  applyNVColorGrade(ctx, w, h);
+  drawBodycamHUD(ctx, w, h, cam, t);
+}
+
+function drawApproach14C(ctx, w, h, t, cam) {
+  const sh = getShake(cam.id, t, 1.2);
+  ctx.save(); ctx.translate(sh.x, sh.y);
+  ctx.fillStyle = '#000'; ctx.fillRect(-10,-10,w+20,h+20);
+
+  // Darker corridor, approaching pit room
+  const cx = w/2, cy = h*0.43;
+  for (let d=1; d<=8; d++) {
+    const scale = 1-d*0.1;
+    const lx = cx - cx*scale, rx = cx + (w-cx)*scale;
+    const ty2 = cy - cy*scale, by = cy+(h*0.55)*scale;
+    const bright = Math.max(0,80-d*10);
+    ctx.strokeStyle=`rgba(0,${bright},0,0.5)`; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(lx,by); ctx.lineTo(rx,by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx,ty2); ctx.lineTo(rx,ty2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx,ty2); ctx.lineTo(lx,by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rx,ty2); ctx.lineTo(rx,by); ctx.stroke();
+  }
+
+  // Warning tape on floor
+  ctx.fillStyle = 'rgba(255,200,0,0.3)';
+  for (let xi=0; xi<8; xi++) {
+    ctx.fillRect(w*0.1+xi*(w*0.1), h*0.6, w*0.05, h*0.3);
+  }
+  ctx.strokeStyle = 'rgba(255,200,0,0.5)'; ctx.lineWidth=2; ctx.setLineDash([8,8]);
+  ctx.beginPath(); ctx.moveTo(w*0.1,h*0.6); ctx.lineTo(w*0.9,h*0.6); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Pit opening visible ahead
+  const pitGrad = ctx.createRadialGradient(w/2,h*0.42,0,w/2,h*0.42,w*0.15);
+  pitGrad.addColorStop(0,'rgba(0,0,0,0.95)');
+  pitGrad.addColorStop(1,'transparent');
+  ctx.fillStyle=pitGrad; ctx.fillRect(w*0.35,h*0.36,w*0.3,h*0.15);
+
+  // Lifeform silhouette at high danger
+  if (cam.danger > 0.4 && Math.random() > 0.7) {
+    const lx = w*0.4 + Math.sin(t*0.0009)*w*0.08;
+    ctx.fillStyle = `rgba(0,255,0,0.06)`;
+    ctx.beginPath(); ctx.ellipse(lx, h*0.3, 12, 30, 0, 0, Math.PI*2); ctx.fill();
+    // Arms
+    ctx.strokeStyle = `rgba(0,255,0,0.08)`; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(lx,h*0.25); ctx.lineTo(lx-20,h*0.45); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx,h*0.25); ctx.lineTo(lx+20,h*0.45); ctx.stroke();
+  }
+
+  ctx.restore();
+  applyNVGrain(ctx,w,h,0.05);
+  applyNVVignette(ctx,w,h);
+  applyNVColorGrade(ctx,w,h);
+  drawBodycamHUD(ctx,w,h,cam,t);
+}
+
+function drawOutpostBodycam(ctx, w, h, t, cam) {
+  const sh = getShake(cam.id, t, 0.3); // Seated, minimal shake
+  ctx.save(); ctx.translate(sh.x, sh.y);
+  ctx.fillStyle='rgba(0,8,0,0.97)'; ctx.fillRect(-10,-10,w+20,h+20);
+
+  // Console/desk view — looking at monitors
+  // Desk surface
+  ctx.fillStyle='rgba(0,25,0,0.7)'; ctx.fillRect(0,h*0.65,w,h*0.35);
+  // Multiple monitor screens
+  const monitors = [{x:w*0.05,y:h*0.1,mw:w*0.28,mh:h*0.45},{x:w*0.36,y:h*0.05,mw:w*0.28,mh:h*0.5},{x:w*0.67,y:h*0.1,mw:w*0.28,mh:h*0.45}];
+  monitors.forEach((m,i) => {
+    ctx.fillStyle='#000'; ctx.fillRect(m.x,m.y,m.mw,m.mh);
+    ctx.strokeStyle='rgba(0,100,0,0.6)'; ctx.lineWidth=1; ctx.strokeRect(m.x,m.y,m.mw,m.mh);
+    // Screen content
+    const scanY = ((t*0.04 + i*30) % m.mh);
+    ctx.fillStyle='rgba(0,255,0,0.04)'; ctx.fillRect(m.x,m.y+scanY,m.mw,2);
+    for(let li=0;li<6;li++){
+      ctx.fillStyle=`rgba(0,${80+Math.random()*100},0,0.5)`;
+      ctx.fillRect(m.x+4,m.y+5+li*(m.mh/8),m.mw*0.7*Math.random(),2);
+    }
+    // Monitor glow
+    const monGlow = ctx.createRadialGradient(m.x+m.mw/2,m.y+m.mh/2,0,m.x+m.mw/2,m.y+m.mh/2,m.mw*0.7);
+    monGlow.addColorStop(0,`rgba(0,180,0,0.06)`); monGlow.addColorStop(1,'transparent');
+    ctx.fillStyle=monGlow; ctx.fillRect(m.x-10,m.y-10,m.mw+20,m.mh+20);
+  });
+  // Keyboard row on desk
+  ctx.fillStyle='rgba(0,30,0,0.8)'; ctx.fillRect(w*0.1,h*0.68,w*0.8,h*0.06);
+  ctx.strokeStyle='rgba(0,80,0,0.4)'; ctx.lineWidth=0.5;
+  for(let k=0;k<24;k++) { ctx.strokeRect(w*0.1+k*(w*0.8/24),h*0.68,w*0.8/24,h*0.06); }
+  // Threshold window — sealed in red
+  ctx.fillStyle='rgba(255,0,0,0.06)'; ctx.fillRect(w*0.41,h*0.07,w*0.18,h*0.3);
+  ctx.fillStyle='rgba(255,0,0,0.3)'; ctx.font=`${Math.floor(w*0.05)}px VT323`;
+  ctx.fillText('SEALED',w*0.435,h*0.23);
+
+  ctx.restore();
+  applyNVGrain(ctx,w,h,0.02);
+  applyNVColorGrade(ctx,w,h);
+  drawBodycamHUD(ctx,w,h,cam,t);
+}
+
+function drawCorridorB(ctx, w, h, t, cam) {
+  // Looking up slightly — ceiling cam perspective
+  const sh = getShake(cam.id, t, 0.6);
+  ctx.save(); ctx.translate(sh.x, sh.y);
+  ctx.fillStyle='#000'; ctx.fillRect(-10,-10,w+20,h+20);
+
+  // Ceiling tile grid — looking up at 30 degree angle
+  const rows=6, cols=5;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) {
+    const tx2=c*(w/cols), ty2=r*(h*0.6/rows);
+    const bright = Math.max(0, 60-r*8-c*3);
+    ctx.strokeStyle=`rgba(0,${bright},0,0.45)`; ctx.lineWidth=0.6;
+    ctx.strokeRect(tx2,ty2,w/cols,h*0.6/rows);
+    // Fluorescent tube
+    if((r+c)%3===0) {
+      const fl=Math.random()>0.97?0:0.5+0.4*Math.sin(t*0.006+r+c);
+      ctx.fillStyle=`rgba(0,200,80,${fl*0.2})`;
+      ctx.fillRect(tx2+2,ty2+h*0.6/rows*0.3,w/cols-4,h*0.6/rows*0.15);
+    }
+  }
+
+  // Walls bleeding down from ceiling
+  ctx.fillStyle='rgba(0,15,0,0.6)'; ctx.fillRect(0,h*0.55,w,h*0.45);
+  // Wallpaper hint on lower walls
+  ctx.strokeStyle='rgba(0,40,0,0.3)'; ctx.lineWidth=0.5;
+  for(let x2=0;x2<w;x2+=w/8){ ctx.beginPath(); ctx.moveTo(x2,h*0.55); ctx.lineTo(x2,h); ctx.stroke(); }
+
+  // Entity on ceiling — wire-like
+  if(cam.danger > 0.15) {
+    const ex = w*0.3 + Math.sin(t*0.0012)*w*0.35;
+    const ey = h*0.15 + Math.cos(t*0.0015)*h*0.12;
+    const ea = (cam.danger - 0.15) * 0.5 * (0.4+0.4*Math.sin(t*0.003));
+    ctx.strokeStyle=`rgba(0,255,80,${ea})`; ctx.lineWidth=1.5;
+    // Wire limbs radiating from center
+    for(let li=0;li<6;li++){
+      const ang=li/6*Math.PI*2 + t*0.0008;
+      const len=15+Math.sin(t*0.004+li)*8;
+      ctx.beginPath(); ctx.moveTo(ex,ey);
+      ctx.lineTo(ex+Math.cos(ang)*len, ey+Math.sin(ang)*len*0.5);
+      ctx.stroke();
+    }
+    ctx.fillStyle=`rgba(0,255,80,${ea})`; ctx.beginPath(); ctx.arc(ex,ey,4,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.restore();
+  applyNVGrain(ctx,w,h,0.04);
+  applyNVVignette(ctx,w,h);
+  applyNVColorGrade(ctx,w,h);
+  drawBodycamHUD(ctx,w,h,cam,t);
+}
+
+function drawLowerAreaBodycam(ctx, w, h, t, cam) {
+  const sh = getShake(cam.id, t, cam.danger > 0.5 ? 2.5 : 1.0); // Shaky if scared
+  ctx.save(); ctx.translate(sh.x, sh.y);
+  ctx.fillStyle='#000'; ctx.fillRect(-10,-10,w+20,h+20);
+
+  // House-like structure — first person looking down hallway
+  const cx=w/2, cy=h*0.44;
+  // Floor perspective
+  const fGrad=ctx.createLinearGradient(0,h*0.44,0,h);
+  fGrad.addColorStop(0,'rgba(0,30,0,0.8)'); fGrad.addColorStop(1,'rgba(0,15,0,0.95)');
+  ctx.fillStyle=fGrad; ctx.beginPath();
+  ctx.moveTo(0,h*0.44); ctx.lineTo(w,h*0.44); ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.fill();
+  // Ceiling
+  ctx.fillStyle='rgba(0,20,0,0.7)'; ctx.fillRect(0,0,w,h*0.15);
+  // Walls
+  ctx.fillStyle='rgba(0,15,0,0.5)'; ctx.fillRect(0,h*0.15,w*0.12,h*0.29);
+  ctx.fillStyle='rgba(0,15,0,0.5)'; ctx.fillRect(w*0.88,h*0.15,w*0.12,h*0.29);
+  // Wallpaper pattern
+  for(let xi=0;xi<4;xi++) for(let yi=0;yi<3;yi++){
+    ctx.fillStyle='rgba(0,40,0,0.25)';
+    ctx.fillRect(w*0.01+xi*w*0.025, h*0.17+yi*h*0.08, w*0.02, h*0.06);
+  }
+
+  // Door at end of hallway
+  const doorX=w*0.38, doorY=h*0.18, doorW=w*0.24, doorH=h*0.26;
+  ctx.fillStyle='rgba(0,5,0,0.97)'; ctx.fillRect(doorX,doorY,doorW,doorH);
+  ctx.strokeStyle='rgba(0,80,0,0.5)'; ctx.lineWidth=2; ctx.strokeRect(doorX,doorY,doorW,doorH);
+
+  // Mold blobs on walls
+  for(let m=0;m<15;m++){
+    ctx.fillStyle=`rgba(0,${15+Math.random()*25},0,0.5)`;
+    ctx.beginPath(); ctx.arc(Math.random()*w*0.2+w*0.01, Math.random()*h*0.25+h*0.17, Math.random()*5+1, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Lifeform standing in doorway
+  if(cam.danger > 0.45) {
+    const lx=doorX+doorW*0.5;
+    const la=Math.min(1,(cam.danger-0.45)*2.5)*(0.5+0.4*Math.sin(t*0.002));
+    ctx.strokeStyle=`rgba(0,255,80,${la*0.7})`; ctx.lineWidth=1.5;
+    // Head
+    ctx.beginPath(); ctx.arc(lx,doorY+doorH*0.15,6,0,Math.PI*2); ctx.stroke();
+    // Body
+    ctx.beginPath(); ctx.moveTo(lx,doorY+doorH*0.21); ctx.lineTo(lx,doorY+doorH*0.55); ctx.stroke();
+    // Long dragging arms
+    ctx.beginPath(); ctx.moveTo(lx,doorY+doorH*0.27);
+    ctx.lineTo(lx-doorW*0.6,doorY+doorH*0.68); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx,doorY+doorH*0.27);
+    ctx.lineTo(lx+doorW*0.6,doorY+doorH*0.68); ctx.stroke();
+    // Glow halo
+    const halo=ctx.createRadialGradient(lx,doorY+doorH*0.3,0,lx,doorY+doorH*0.3,40);
+    halo.addColorStop(0,`rgba(0,255,80,${la*0.15})`); halo.addColorStop(1,'transparent');
+    ctx.fillStyle=halo; ctx.fillRect(lx-50,doorY,100,doorH*0.8);
+  }
+
+  ctx.restore();
+  applyNVGrain(ctx,w,h,0.055);
+  applyNVVignette(ctx,w,h);
+  applyNVColorGrade(ctx,w,h);
+  drawBodycamHUD(ctx,w,h,cam,t);
+}
+
+function drawBaseCam(ctx, w, h, t, cam) {
+  // Security cam — static mounted, high angle looking at Threshold room
+  ctx.fillStyle='rgba(0,6,0,0.98)'; ctx.fillRect(0,0,w,h);
+  // Room grid
+  ctx.strokeStyle='rgba(0,40,0,0.3)'; ctx.lineWidth=0.5;
+  for(let x2=0;x2<w;x2+=w/10) { ctx.beginPath(); ctx.moveTo(x2,0); ctx.lineTo(x2,h); ctx.stroke(); }
+  for(let y2=0;y2<h;y2+=h/8) { ctx.beginPath(); ctx.moveTo(0,y2); ctx.lineTo(w,y2); ctx.stroke(); }
+  // LPMD machine outline
+  const mx=w*0.3, my=h*0.2, mw2=w*0.4, mh2=h*0.5;
+  ctx.strokeStyle='rgba(0,120,0,0.5)'; ctx.lineWidth=2;
+  ctx.strokeRect(mx,my,mw2,mh2);
+  // Threshold portal shimmer
+  const gp=0.4+0.4*Math.sin(t*0.002);
+  const grad=ctx.createLinearGradient(mx+mw2*0.2,my,mx+mw2*0.2,my+mh2);
+  grad.addColorStop(0,`rgba(0,255,80,${gp*0.2})`);
+  grad.addColorStop(0.5,`rgba(0,200,60,${gp*0.1})`);
+  grad.addColorStop(1,'transparent');
+  ctx.fillStyle=grad; ctx.fillRect(mx+mw2*0.2,my,mw2*0.6,mh2);
+  // Status indicators bottom
+  for(let li=0;li<5;li++){
+    ctx.fillStyle=Math.random()>0.1?'rgba(0,255,0,0.7)':'rgba(255,255,0,0.6)';
+    ctx.fillRect(w*0.1+li*(w*0.15),h*0.82,8,8);
+  }
+  // Blinking ALL SYSTEMS NOMINAL
+  if(Math.floor(t/1000)%3!==0){
+    ctx.fillStyle='rgba(0,200,0,0.5)'; ctx.font=`${Math.floor(w*0.045)}px VT323`;
+    ctx.fillText('ALL SYSTEMS NOMINAL',w*0.28,h*0.93);
+  }
+  applyNVGrain(ctx,w,h,0.02);
+  applyNVColorGrade(ctx,w,h);
+  drawBodycamHUD(ctx,w,h,cam,t);
+}
+
+function drawLostFeed(ctx, w, h, t) {
+  // Heavy static — signal lost
+  const iData=ctx.createImageData(w,h);
+  const d=iData.data;
+  for(let i=0;i<d.length;i+=4){
+    const v=Math.random()>0.45?Math.floor(Math.random()*100):0;
+    d[i]=0;d[i+1]=v;d[i+2]=0;d[i+3]=255;
+  }
+  ctx.putImageData(iData,0,0);
+  // Horizontal tears
+  for(let ti=0;ti<3;ti++){
+    if(Math.random()>0.5){
+      const ty2=Math.floor(Math.random()*h);
+      ctx.fillStyle=`rgba(0,${Math.floor(Math.random()*180)},0,0.6)`;
+      ctx.fillRect(0,ty2,w,Math.random()>0.8?4:1);
+    }
+  }
+  // Signal lost text
+  if(Math.random()>0.3){
+    ctx.fillStyle=`rgba(0,255,0,${0.4+Math.random()*0.5})`;
+    ctx.font=`bold ${Math.floor(w*0.09)}px 'Share Tech Mono', monospace`;
+    ctx.fillText('SIGNAL LOST', w*0.08, h*0.5);
+    ctx.font=`${Math.floor(w*0.055)}px 'Share Tech Mono', monospace`;
+    ctx.fillStyle='rgba(255,0,0,0.5)';
+    ctx.fillText('CAM 07 — CONNECTION FAILURE', w*0.05, h*0.65);
+  }
+}
+
+// ── NV post-processing ──
+function applyNVGrain(ctx, w, h, intensity) {
+  const iData=ctx.createImageData(w,h);
+  const d=iData.data;
+  for(let i=0;i<d.length;i+=4){
+    if(Math.random()<intensity){
+      const v=Math.floor(Math.random()*60);
+      d[i]=0;d[i+1]=v;d[i+2]=0;d[i+3]=80;
+    }
+  }
+  ctx.putImageData(iData,0,0);
+}
+
+function applyNVVignette(ctx, w, h) {
+  const vig=ctx.createRadialGradient(w/2,h/2,h*0.3,w/2,h/2,w*0.7);
+  vig.addColorStop(0,'transparent');
+  vig.addColorStop(1,'rgba(0,0,0,0.65)');
+  ctx.fillStyle=vig; ctx.fillRect(0,0,w,h);
+}
+
+function applyNVColorGrade(ctx, w, h) {
+  // Subtle green tint overlay
+  ctx.fillStyle='rgba(0,255,0,0.03)'; ctx.fillRect(0,0,w,h);
+  // Scanlines
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  for(let y=0;y<h;y+=2) ctx.fillRect(0,y,w,1);
+}
+
+function renderBodycamScene(cam, ctx, w, h, t) {
+  switch(cam.scene) {
+    case 'walking':     drawWalkingCorridor(ctx,w,h,t,cam);  break;
+    case 'approach14c': drawApproach14C(ctx,w,h,t,cam);       break;
+    case 'outpost':     drawOutpostBodycam(ctx,w,h,t,cam);    break;
+    case 'corridor':    drawCorridorB(ctx,w,h,t,cam);         break;
+    case 'lowerarea':   drawLowerAreaBodycam(ctx,w,h,t,cam);  break;
+    case 'base':        drawBaseCam(ctx,w,h,t,cam);           break;
+    case 'lost':        drawLostFeed(ctx,w,h,t);              break;
+  }
+}
+
+function addCamMotionLog(camLabel, msg, color='#ff0') {
+  const log = document.getElementById('cam-motion-log');
+  if (!log) return;
+  const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+  const el = document.createElement('div');
+  el.style.cssText = `color:${color};font-size:12px;letter-spacing:1px;font-family:'Share Tech Mono',monospace;`;
+  el.textContent = `[${ts}] ${camLabel}: ${msg}`;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  while(log.children.length > 20) log.removeChild(log.firstChild);
+}
+
+function openCamExpanded(cam) {
+  camExpanded = cam;
+  const wrap = document.getElementById('cam-expanded');
+  wrap.style.display = 'block';
+  const statusEl = document.getElementById('cam-exp-status');
+  const dangerColor = cam.danger > 0.6 ? '#f00' : cam.danger > 0.3 ? '#ff0' : '#0f0';
+  statusEl.style.color = dangerColor;
+  statusEl.textContent = `${cam.label}  ·  ${cam.loc}  ·  RISK: ${Math.floor(cam.danger*100)}%`;
+
+  const canvas = document.getElementById('cam-exp-canvas');
+  // 16:9 expanded
+  const ew = Math.min(1200, window.innerWidth - 48);
+  const eh = Math.floor(ew * 9/16);
+  canvas.width = ew; canvas.height = eh;
+  const ctx = canvas.getContext('2d');
+
+  cancelAnimationFrame(camExpAF);
+  function loop(t) {
+    renderBodycamScene(cam, ctx, ew, eh, t);
+    camExpAF = requestAnimationFrame(loop);
+  }
+  camExpAF = requestAnimationFrame(loop);
+  wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function closeCamExpanded() {
+  cancelAnimationFrame(camExpAF);
+  document.getElementById('cam-expanded').style.display = 'none';
+  camExpanded = null;
+}
+
+function initCameraGrid() {
+  const grid = document.getElementById('cam-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  CAMERAS.forEach(cam => {
+    cam.motionAlert = false;
+
+    const cell = document.createElement('div');
+    cell.className = 'cam-cell';
+    cell.id = 'cell-' + cam.id;
+    cell.style.cssText = 'position:relative;cursor:pointer;background:#000;border:1px solid rgba(0,255,0,0.2);overflow:hidden;';
+    cell.title = 'Click to expand feed';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = CAM_W; canvas.height = CAM_H;
+    canvas.style.cssText = 'width:100%;display:block;';
+    cell.appendChild(canvas);
+
+    // Small label strip
+    const lbl = document.createElement('div');
+    const dangerColor = cam.danger > 0.6 ? '#f00' : cam.danger > 0.3 ? '#ff0' : '#0f0';
+    lbl.style.cssText = `position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);padding:3px 8px;display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:11px;pointer-events:none;`;
+    lbl.innerHTML = `<span style="color:#fff;letter-spacing:1px;">${cam.callsign}</span><span style="color:${dangerColor};">RISK ${Math.floor(cam.danger*100)}%</span>`;
+    cell.appendChild(lbl);
+
+    cell.addEventListener('click', () => openCamExpanded(cam));
+    grid.appendChild(cell);
+
+    const ctx = canvas.getContext('2d');
+    let motionTimer = null;
+
+    function loop(t) {
+      renderBodycamScene(cam, ctx, CAM_W, CAM_H, t);
+
+      // Random motion events
+      if (!cam.motionAlert && Math.random() < cam.danger * 0.0003) {
+        cam.motionAlert = true;
+        cell.style.borderColor = '#f00';
+        cell.style.boxShadow = '0 0 16px rgba(255,0,0,0.4)';
+        const alerts = [
+          'MOTION DETECTED','LIFEFORM SIGNATURE','UNIDENTIFIED MOVEMENT',
+          'ACOUSTIC ANOMALY','ENTITY PROXIMITY','SUIT BREACH WARNING'
+        ];
+        const msg = alerts[Math.floor(Math.random()*alerts.length)];
+        addCamMotionLog(cam.label, msg, cam.danger > 0.5 ? '#f00' : '#ff0');
+        addFeedLine(`[CAM ${cam.callsign}] ${msg}`, cam.danger > 0.5 ? '#f00' : '#ff0');
+        clearTimeout(motionTimer);
+        motionTimer = setTimeout(() => {
+          cam.motionAlert = false;
+          cell.style.borderColor = 'rgba(0,255,0,0.2)';
+          cell.style.boxShadow = '';
+        }, 3000 + Math.random()*2000);
+      }
+
+      camAFs[cam.id] = requestAnimationFrame(loop);
+    }
+    camAFs[cam.id] = requestAnimationFrame(loop);
+  });
+}
+
+function openFootage() {
+  document.getElementById('found-footage-modal').classList.add('open');
+  if (!document.querySelector('.cam-cell')) {
+    setTimeout(initCameraGrid, 50);
+  }
+}
+
+function closeFootage() {
+  document.getElementById('found-footage-modal').classList.remove('open');
+  closeCamExpanded();
+}
+
+
+
+// ════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════════
+//  ADMIN PANEL
+// ════════════════════════════════════════════════
+let logoClickCount = 0;
+let logoClickTimer = null;
+
+function initLogoClicks() {
+  document.getElementById('async-logo').addEventListener('click', () => {
+    logoClickCount++;
+    if (logoClickTimer) clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => { logoClickCount=0; }, 2000);
+    if (logoClickCount >= 5) { logoClickCount=0; openAdmin(); }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.altKey && e.key === 'a') openAdmin();
+  if (e.key === 'Escape') { closeLevelModal(); closeAdmin(); closeFootage(); }
+});
+
+// Level modal backdrop click
+document.getElementById('level-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeLevelModal();
+});
+
+function initAdminPanel() {
+  const content = document.getElementById('admin-content');
+  content.innerHTML = `
+    <div style="color:#f00;font-size:22px;letter-spacing:2px;margin-bottom:16px;">ACCESS GRANTED — ADMINISTRATOR TERMINAL</div>
+    <div style="font-size:16px;line-height:2;">
+      USER: <span style="color:#0ff;">ADMIN_Ψ</span><br>
+      CLEARANCE: <span style="color:#f00;">LEVEL 5 — EYES ONLY</span><br>
+      SESSION: <span style="color:#ff0;" id="admin-session-id"></span><br>
+      <br>
+      ACTIVE BREACHES: <span style="color:#f00;" id="admin-breaches">--</span><br>
+      ENTITIES UNCONTAINED: <span style="color:#f00;" id="admin-entities">--</span><br>
+      MISSING PERSONNEL: <span style="color:#f00;" id="admin-missing">--</span><br>
+      THRESHOLD STABILITY: <span style="color:#ff0;" id="admin-stability">--</span><br>
+      <br>
+      <span style="color:rgba(255,0,0,0.5);font-size:13px;">
+        ████████████████████████████████████████<br>
+        CLASSIFIED UNDER EXECUTIVE ORDER ████████<br>
+        UNAUTHORIZED ACCESS SUBJECT TO ████████████<br>
+        ████████████████████████████████████████
+      </span>
+    </div>
+  `;
+}
+
+function openAdmin() {
+  document.getElementById('admin-panel').classList.add('open');
+  document.getElementById('admin-session-id').textContent = '0x' + Math.random().toString(16).substr(2,8).toUpperCase();
+  document.getElementById('admin-breaches').textContent = _breaches;
+  document.getElementById('admin-entities').textContent = _entities;
+  document.getElementById('admin-missing').textContent = Math.floor(_personnel * 0.3);
+  document.getElementById('admin-stability').textContent = _stability.toFixed(1) + '%';
+}
+
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('open');
+}
+
+function adminAction(action) {
+  const msgs = {
+    purge: 'PURGING ALL LOGS... COMPLETE. 1,847 ENTRIES DELETED.',
+    entities: 'ENTITY SWEEP INITIATED... 12 ENTITIES SUPPRESSED. 3 UNRESPONSIVE.',
+    threshold: 'FORCING THRESHOLD RECALIBRATION... STABILITY: ████%. WARNING: UNPREDICTABLE SIDE EFFECTS.',
+    evacuate: 'EVACUATION ORDER BROADCAST TO ALL SECTORS... RESPONSE: ██ OF ██ PERSONNEL CONFIRMED.',
+  };
+  const content = document.getElementById('admin-content');
+  const msg = document.createElement('div');
+  msg.style.cssText = 'color:#f00;margin-top:12px;font-size:18px;animation:tbBlink 0.5s step-end 4;';
+  msg.textContent = '> ' + (msgs[action]||'COMMAND EXECUTED');
+  content.appendChild(msg);
+}
+
+// ════════════════════════════════════════════════
+//  REBOOT
+// ════════════════════════════════════════════════
+function rebootThreshold() {
+  // Stop radio
+  if (radioOn) toggleRadio();
+  // Hide main UI
+  document.getElementById('main-ui').style.display='none';
+  // Reset boot
+  bootDone = false;
+  bootStartTime = 0;
+  bootTerminal.innerHTML = '';
+  shownBootLines.clear();
+  bootLogo.style.opacity='0';
+  bootBigText.style.opacity='0';
+  progressBar.style.width='0%';
+  bootCanvas.style.transform='';
+  bootParticles.length=0;
+  initBootParticles();
+  const bs = document.getElementById('boot-screen');
+  bs.style.opacity='1';
+  bs.style.display='flex';
+  cancelAnimationFrame(bootAF);
+  requestAnimationFrame(bootLoop);
+}
+
+// TV static cleanup
+window.addEventListener('beforeunload', () => {
+  cancelAnimationFrame(tvStaticAF);
+});
+
+// Parallax on hero
+document.addEventListener('mousemove', e => {
+  const hero = document.getElementById('hero');
+  if (!hero) return;
+  const rect = hero.getBoundingClientRect();
+  if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+  const px = (e.clientX / window.innerWidth - 0.5) * 20;
+  const py = (e.clientY / window.innerHeight - 0.5) * 10;
+  const bg = document.getElementById('hero-parallax-bg');
+  if (bg) bg.style.transform = `translate(${px}px,${py}px)`;
+});
+
+</script>
+</body>
+</html>
