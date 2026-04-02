@@ -1813,7 +1813,7 @@ if ('speechSynthesis' in window) {
   };
 }
 
-function pickVoice(wantFemale) {
+function pickVoice(wantMale) {
   const voices = getVoices();
   if (!voices.length) return null;
   const engVoices = voices.filter(v => /en/i.test(v.lang));
@@ -1840,7 +1840,7 @@ function speakLine(speaker, text, onDone) {
   utter.pitch  = style.pitch;
   utter.volume = parseFloat(document.getElementById('radio-vol')?.value || 0.8);
 
-  const voice = pickVoice(wantFemale);
+  const voice = pickVoice(wantMale);
   if (voice) utter.voice = voice;
 
   utter.onend   = () => { onDone && onDone(); };
